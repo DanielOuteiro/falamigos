@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Falamigos",
+    "slug": "falamigos",
+    "scheme": "falamigos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#0B4F6C",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.falamigos.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "O Falamigos usa o microfone para você gravar sua voz durante os exercícios de fala."
+      }
+    },
+    "android": {
+      "package": "com.falamigos.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B4F6C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-splash-screen",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "O Falamigos usa o microfone para você gravar sua voz durante os exercícios de fala."
+        }
+      ]
+    ]
+  }
+}

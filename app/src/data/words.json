@@ -1,0 +1,15 @@
+[
+  { "id": "cha", "palavra": "chá", "emoji": "🍵", "silabas": ["chá"], "alvo": 0 },
+  { "id": "chave", "palavra": "chave", "emoji": "🔑", "silabas": ["cha", "ve"], "alvo": 0 },
+  { "id": "chupeta", "palavra": "chupeta", "emoji": "🍼", "silabas": ["chu", "pe", "ta"], "alvo": 0 },
+  { "id": "chaleira", "palavra": "chaleira", "emoji": "🫖", "silabas": ["cha", "lei", "ra"], "alvo": 0 },
+  { "id": "guarda_chuva", "palavra": "guarda-chuva", "emoji": "☂️", "silabas": ["guar", "da", "chu", "va"], "alvo": 2 },
+  { "id": "bexiga", "palavra": "bexiga", "emoji": "🎈", "silabas": ["be", "xi", "ga"], "alvo": 1 },
+  { "id": "abacaxi", "palavra": "abacaxi", "emoji": "🍍", "silabas": ["a", "ba", "ca", "xi"], "alvo": 3 },
+  { "id": "peixe", "palavra": "peixe", "emoji": "🐠", "silabas": ["pei", "xe"], "alvo": 1 },
+  { "id": "bruxa", "palavra": "bruxa", "emoji": "🧙", "silabas": ["bru", "xa"], "alvo": 1 },
+  { "id": "mochila", "palavra": "mochila", "emoji": "🎒", "silabas": ["mo", "chi", "la"], "alvo": 1 },
+  { "id": "machucado", "palavra": "machucado", "emoji": "🩹", "silabas": ["ma", "chu", "ca", "do"], "alvo": 1 },
+  { "id": "enxada", "palavra": "enxada", "emoji": "⛏️", "silabas": ["en", "xa", "da"], "alvo": 1 },
+  { "id": "cachorro", "palavra": "cachorro", "emoji": "🐕", "silabas": ["ca", "chor", "ro"], "alvo": 1 }
+]
