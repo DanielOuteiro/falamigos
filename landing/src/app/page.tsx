@@ -708,7 +708,7 @@ export default function Home() {
                   borderRadius: 24,
                   background: "#F4EEFF",
                   display: "flex",
-                  alignItems: "flex-end",
+                  alignItems: "center",
                   justifyContent: "center",
                   position: "relative",
                   overflow: "hidden",
@@ -746,13 +746,11 @@ export default function Home() {
                   src="/assets/chico-nascendo.png"
                   alt="Criaturinha Chico nascendo"
                   style={{
-                    width: 148,
-                    height: 148,
+                    width: 108,
+                    height: 108,
                     objectFit: "contain",
                     objectPosition: "center",
                     display: "block",
-                    margin: "0 auto -8px",
-                    transform: "translateX(-12px)",
                   }}
                 />
               </div>
