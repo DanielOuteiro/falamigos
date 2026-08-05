@@ -18,7 +18,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
           <div>
             <p className="font-[family-name:var(--font-titulo)] text-lg font-extrabold leading-none">Falamigos</p>
-            <p className="text-[11px] font-semibold text-turquesa-claro">painel da fonoaudióloga</p>
+            <p className="text-[11px] font-semibold text-turquesa-claro">painel da fono</p>
           </div>
         </div>
 
@@ -38,19 +38,12 @@ export function Layout({ children }: { children: ReactNode }) {
             </NavLink>
           ))}
         </nav>
-
-        <div className="mt-auto px-5 py-6">
-          <div className="rounded-2xl bg-white/8 p-4">
-            <p className="font-[family-name:var(--font-titulo)] text-sm font-bold text-areia">Demo Falamigos</p>
-            <p className="mt-1 text-xs text-turquesa-claro">Todos os dados desta tela são fictícios (mock).</p>
-          </div>
-        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="flex-1 overflow-y-auto">{children}</main>
         <footer className="border-t border-black/5 bg-white px-8 py-3 text-center text-xs font-semibold text-tinta/50">
-          Complemento ao tratamento — a conduta clínica é sempre da fonoaudióloga.
+          Complemento ao tratamento — a conduta clínica é sempre da fono.
         </footer>
       </div>
     </div>

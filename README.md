@@ -5,6 +5,7 @@ hoje mesmo:
 
 - **`/app`** — a app da criança (Expo / React Native, roda no Expo Go)
 - **`/dashboard`** — o painel da fonoaudióloga (Vite + React + Tailwind, 100% dados mock)
+- **`/landing`** — landing page de marketing (Next.js), port fiel do protótipo v2
 
 Fonema desta demo: **/ʃ/** (som do CH/X), universo **Fundo do Mar**, mascote **Chico** (polvo).
 
@@ -40,19 +41,30 @@ npm run dev
 Abra a URL que aparecer no terminal (normalmente `http://localhost:5173`).
 4 telas navegáveis: **Pacientes → Plano do paciente → Fila de Escuta → Relatório**.
 
+## 3. Rodar a landing page
+
+```bash
+cd landing
+npm install       # só na primeira vez
+npm run dev
+```
+
+Abra a URL que aparecer no terminal (normalmente `http://localhost:3000`).
+Port fiel do protótipo **FalaMigos Landing v2** (mesma cópia, cores, seções e assets).
+
 ---
 
 ## Stack técnica
 
-| | App | Dashboard |
-|---|---|---|
-| Framework | Expo (React Native) + `expo-router` | Vite + React |
-| Linguagem | TypeScript | TypeScript |
-| Estilo | `StyleSheet` + SVG (`react-native-svg`) | Tailwind CSS v4 |
-| Animação | `react-native-reanimated` | CSS/Tailwind |
-| Áudio | `expo-av` (gravação/playback) + `expo-speech` (TTS pt-BR) | — (mock) |
-| Persistência | `@react-native-async-storage/async-storage` | — (mock em memória) |
-| Rede em runtime | **zero** | **zero** |
+|                 | App                                                       | Dashboard           |
+| --------------- | --------------------------------------------------------- | ------------------- |
+| Framework       | Expo (React Native) + `expo-router`                       | Vite + React        |
+| Linguagem       | TypeScript                                                | TypeScript          |
+| Estilo          | `StyleSheet` + SVG (`react-native-svg`)                   | Tailwind CSS v4     |
+| Animação        | `react-native-reanimated`                                 | CSS/Tailwind        |
+| Áudio           | `expo-av` (gravação/playback) + `expo-speech` (TTS pt-BR) | — (mock)            |
+| Persistência    | `@react-native-async-storage/async-storage`               | — (mock em memória) |
+| Rede em runtime | **zero**                                                  | **zero**            |
 
 A app só usa bibliotecas compatíveis com Expo Go (nenhum dev build
 necessário): `expo-av`, `expo-speech`, `expo-haptics`, `expo-file-system`,
@@ -80,7 +92,7 @@ por conteúdo de produção não exija tocar nos ecrãs:
   "IMAGEM: chave (do pipeline)" do protótipo de referência.
 - **`app/src/components/ChicoSprite.tsx`** — hoje é um SVG (paths portados
   do protótipo `Falamigos.dc.html`) com poses `idle | listening |
-  celebrating | talking`. Amanhã pode virar sprite-sheet/Lottie/vídeo sem
+celebrating | talking`. Amanhã pode virar sprite-sheet/Lottie/vídeo sem
   mudar a prop `pose`.
 - **`app/src/data/words.json`** e **`app/src/data/chico.ts`** — banco de
   palavras e falas do Chico. Hoje estático; amanhã pode vir do dashboard
