@@ -50,7 +50,7 @@ npm run dev
 ```
 
 Abra a URL que aparecer no terminal (normalmente `http://localhost:3000`).
-Port fiel do protótipo **FalaMigos Landing v2** (mesma cópia, cores, seções e assets).
+Port fiel do protótipo **Falamigos Landing v2** (mesma cópia, cores, seções e assets).
 
 ---
 

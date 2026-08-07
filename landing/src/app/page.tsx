@@ -71,7 +71,7 @@ function Logo({ dark = false, height = 36 }: { dark?: boolean; height?: number }
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
-      alt="FalaMigos"
+      alt="Falamigos"
       height={height}
       style={{
         height,
@@ -88,7 +88,7 @@ export default function Home() {
   return (
     <>
       <nav className="nav">
-        <a href="#topo" aria-label="FalaMigos" style={{ display: "flex", alignItems: "center" }}>
+        <a href="#topo" aria-label="Falamigos" style={{ display: "flex", alignItems: "center" }}>
           <Logo height={34} />
         </a>
         <div className="nav-links">
@@ -102,7 +102,7 @@ export default function Home() {
             Sou fono
           </a>
           <a
-            href="mailto:ola@falamigos.com.br?subject=Quero%20conhecer%20o%20FalaMigos"
+            href="mailto:ola@falamigos.com.br?subject=Quero%20conhecer%20o%20Falamigos"
             className="nav-cta"
           >
             Quero conhecer
@@ -476,7 +476,7 @@ export default function Home() {
                 color: "#FFD166",
               }}
             >
-              O FalaMigos é a ponte entre o consultório e a sala de casa.
+              O Falamigos é a ponte entre o consultório e a sala de casa.
             </div>
           </div>
         </div>
@@ -1085,7 +1085,7 @@ export default function Home() {
               }}
             >
               Guardamos milhares de fotos dos nossos filhos, mas quase ninguém
-              guarda a voz. O FalaMigos grava desde o primeiro dia. O antes e o
+              guarda a voz. O Falamigos grava desde o primeiro dia. O antes e o
               depois, lado a lado, para sempre.
             </p>
           </div>
@@ -1521,7 +1521,7 @@ export default function Home() {
           }}
         >
           <span>
-            © 2026 FalaMigos. Quem trata é a fono; nós somos a ponte entre a
+            © 2026 Falamigos. Quem trata é a fono; nós somos a ponte entre a
             consulta e a casa.
           </span>
           <span>Feito com carinho no Brasil ✦</span>

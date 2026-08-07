@@ -7,7 +7,7 @@ export function PicoHero() {
       loop
       playsInline
       preload="auto"
-      aria-label="Pico, o mascote do FalaMigos, acenando"
+      aria-label="Pico, o mascote do Falamigos, acenando"
       style={{
         width: "min(480px, 100%)",
         maxWidth: "100%",

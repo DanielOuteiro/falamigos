@@ -16,7 +16,7 @@ const nunitoSans = Nunito_Sans({
   display: "swap",
 });
 
-const title = "FalaMigos: O treino de fala que seu filho vai pedir para repetir";
+const title = "Falamigos: O treino de fala que seu filho vai pedir para repetir";
 const description =
   "A criança segura um botão, fala, ouve a própria voz e vê criaturinhas mágicas nascerem. Complemento ao trabalho da fono, para crianças de 3 a 8 anos.";
 const siteUrl = "https://falamigos.com.br";
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     title,
     description,
     url: siteUrl,
-    siteName: "FalaMigos",
+    siteName: "Falamigos",
     locale: "pt_BR",
     type: "website",
   },
@@ -69,7 +69,7 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "MobileApplication",
-              name: "FalaMigos",
+              name: "Falamigos",
               applicationCategory: "HealthApplication",
               operatingSystem: "iOS, Android",
               description,
