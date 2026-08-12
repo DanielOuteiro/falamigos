@@ -42,3 +42,6 @@ yarn-error.*
 
 # audio normalization backups
 assets/.audio_backup/
+
+# release signing secrets
+credentials/
