@@ -56,14 +56,21 @@ export function usePulse(durationMs = 1900, from = 1, to = 1.07, delayMs = 0) {
 }
 
 /** Anel expandindo e desaparecendo em loop (ringOut). */
-export function useRingOut(durationMs = 2200, delayMs = 0) {
+export function useRingOut(
+  durationMs = 2200,
+  delayMs = 0,
+  opts?: { fromScale?: number; toScale?: number; fromOpacity?: number }
+) {
+  const fromScale = opts?.fromScale ?? 0.72;
+  const toScale = opts?.toScale ?? 1.5;
+  const fromOpacity = opts?.fromOpacity ?? 0.75;
   const t = useSharedValue(0);
   useEffect(() => {
     t.value = withDelay(delayMs, withRepeat(withTiming(1, { duration: durationMs, easing: Easing.out(Easing.ease) }), -1, false));
   }, []);
   return useAnimatedStyle(() => ({
-    opacity: 0.75 * (1 - t.value),
-    transform: [{ scale: 0.72 + 0.78 * t.value }],
+    opacity: fromOpacity * (1 - t.value),
+    transform: [{ scale: fromScale + (toScale - fromScale) * t.value }],
   }));
 }
 

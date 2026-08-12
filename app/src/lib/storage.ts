@@ -16,6 +16,8 @@ const KEYS = {
   gravacoes: 'falamigos:gravacoes',
   capsulaDia0: 'falamigos:capsulaDia0',
   onboardingCompleto: 'falamigos:onboardingCompleto',
+  rotacaoIndex: 'falamigos:rotacaoIndex',
+  errosUltimaSessao: 'falamigos:errosUltimaSessao',
 } as const;
 
 export type Perfil = {
@@ -67,7 +69,8 @@ export const storage = {
   async getUltimaSessao(): Promise<string | null> {
     return getJSON<string | null>(KEYS.ultimaSessao, null);
   },
-  async registrarSessaoConcluida(): Promise<{ streak: number; ovoCompleto: boolean }> {
+  /** Chamado uma vez, ao fim de toda a sessão do dia (streak + contagem do trilho). */
+  async registrarSessaoConcluida(): Promise<{ streak: number }> {
     const hoje = new Date().toISOString().slice(0, 10);
     const ultima = await this.getUltimaSessao();
     let streak = await this.getStreak();
@@ -80,14 +83,14 @@ export const storage = {
     const sessoes = (await getJSON<number>(KEYS.sessoesCompletas, 0)) + 1;
     await setJSON(KEYS.sessoesCompletas, sessoes);
 
-    let fragmentos = (await getJSON<number>(KEYS.ovoFragmentos, 0)) + 1;
-    let ovoCompleto = false;
-    if (fragmentos >= 3) {
-      ovoCompleto = true;
-    }
-    await setJSON(KEYS.ovoFragmentos, fragmentos);
+    return { streak };
+  },
 
-    return { streak, ovoCompleto };
+  /** Chamado ao fim de cada bloco (3 por sessão) — 1 pedaço de ovo cada. */
+  async adicionarFragmentoOvo(): Promise<{ fragmentos: number; ovoCompleto: boolean }> {
+    const fragmentos = (await getJSON<number>(KEYS.ovoFragmentos, 0)) + 1;
+    await setJSON(KEYS.ovoFragmentos, fragmentos);
+    return { fragmentos, ovoCompleto: fragmentos >= 3 };
   },
 
   async getOvoFragmentos(): Promise<number> {
@@ -127,7 +130,45 @@ export const storage = {
     await setJSON(KEYS.capsulaDia0, gravacoes);
   },
 
+  /**
+   * Ponteiro de rotação das palavras — avança 1x por sessão *completada*
+   * (não por dia/data). Fazer várias sessões no mesmo dia dá conteúdo novo
+   * em cada uma; ficar dias sem abrir o app não pula nada.
+   */
+  async getRotacaoIndex(): Promise<number> {
+    return getJSON<number>(KEYS.rotacaoIndex, 0);
+  },
+  async setRotacaoIndex(v: number): Promise<void> {
+    await setJSON(KEYS.rotacaoIndex, v);
+  },
+
+  async getErrosUltimaSessao(): Promise<string[]> {
+    return getJSON<string[]>(KEYS.errosUltimaSessao, []);
+  },
+  /**
+   * Chamado 1x no fim de cada sessão completa — guarda as palavras em que
+   * houve "erro" (pediu repetir, ou tocou na sílaba/opção errada). Elas
+   * voltam com prioridade na sessão seguinte. Sobrescreve o registo
+   * anterior: só interessa o que aconteceu na sessão mais recente.
+   */
+  async registrarErrosSessao(wordIds: string[]): Promise<void> {
+    await setJSON(KEYS.errosUltimaSessao, Array.from(new Set(wordIds)));
+  },
+
+  /** Rotação genérica por chave — usada por pools sem prioridade de erro (ex.: frases do Eco/Travessia). */
+  async getRotacaoGenerica(chave: string): Promise<number> {
+    return getJSON<number>(rotacaoGenericaKey(chave), 0);
+  },
+  async setRotacaoGenerica(chave: string, v: number): Promise<void> {
+    await setJSON(rotacaoGenericaKey(chave), v);
+  },
+
   async resetTudo(): Promise<void> {
-    await AsyncStorage.multiRemove(Object.values(KEYS));
+    const todas = await AsyncStorage.getAllKeys();
+    await AsyncStorage.multiRemove(todas.filter((k) => k.startsWith('falamigos:')));
   },
 };
+
+function rotacaoGenericaKey(chave: string): string {
+  return `falamigos:rot:${chave}`;
+}

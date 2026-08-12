@@ -10,15 +10,27 @@ type Props = {
   size?: number;
   emoji?: string;
   label?: string;
+  /** Tamanho da label em px; default = 38% do size. */
+  labelSize?: number;
   color?: string;
   disabled?: boolean;
   dim?: boolean;
 };
 
 /** Botão-bolha: objeto redondo turquesa usado para ações secundárias. */
-export function BubbleButton({ onPress, size = 72, emoji, label, color = colors.turquesa, disabled, dim }: Props) {
+export function BubbleButton({
+  onPress,
+  size = 72,
+  emoji,
+  label,
+  labelSize,
+  color = colors.turquesa,
+  disabled,
+  dim,
+}: Props) {
   const scale = useSharedValue(1);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const fontSize = labelSize ?? size * 0.38;
 
   return (
     <Pressable
@@ -44,7 +56,7 @@ export function BubbleButton({ onPress, size = 72, emoji, label, color = colors.
         </Svg>
         <View style={styles.center} pointerEvents="none">
           {emoji ? <Text style={{ fontSize: size * 0.42 }}>{emoji}</Text> : null}
-          {label ? <Text style={[styles.label, { fontSize: size * 0.24 }]}>{label}</Text> : null}
+          {label ? <Text style={[styles.label, { fontSize }]}>{label}</Text> : null}
         </View>
       </Animated.View>
     </Pressable>

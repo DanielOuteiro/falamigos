@@ -6,8 +6,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fontFamily } from '@/theme/colors';
 import { storage, type Gravacao } from '@/lib/storage';
 import { playFile } from '@/lib/recorder';
+import { espiarProximasPalavras } from '@/lib/palavrasDoDia';
+import type { Word } from '@/data/modelWords';
 
-type Aba = 'viagem' | 'gravacoes';
+type Aba = 'viagem' | 'gravacoes' | 'jogos';
+
+const JOGOS_DEV: { label: string; fase: string; novo?: boolean }[] = [
+  { label: 'Bloco 1 · Ouvidos Mágicos', fase: 'aquecimento' },
+  { label: 'Bloco 1 · Hora de Falar', fase: 'producao' },
+  { label: 'Bloco 1 · Guardar no Tesouro', fase: 'tesouro', novo: true },
+  { label: 'Bloco 1 · Recompensa 1/3', fase: 'recompensa1' },
+  { label: 'Bloco 2 · Caça-Sílaba', fase: 'cacaSilaba' },
+  { label: 'Bloco 2 · Qual é qual?', fase: 'qualEQual' },
+  { label: 'Bloco 2 · Recompensa 2/3', fase: 'recompensa2' },
+  { label: 'Bloco 3 · Eco', fase: 'eco' },
+  { label: 'Bloco 3 · A Travessia', fase: 'travessia' },
+  { label: 'Bloco 3 · Recompensa 3/3 (nasce!)', fase: 'recompensa3' },
+  { label: 'Fecho', fase: 'fecho' },
+];
 
 export default function PainelAdulto() {
   const router = useRouter();
@@ -15,6 +31,8 @@ export default function PainelAdulto() {
   const [capsula, setCapsula] = useState<Gravacao[]>([]);
   const [recentes, setRecentes] = useState<Record<string, Gravacao | null>>({});
   const [gravacoes, setGravacoes] = useState<Gravacao[]>([]);
+  const [proximasPalavras, setProximasPalavras] = useState<Word[]>([]);
+  const [errosSessaoAnterior, setErrosSessaoAnterior] = useState<string[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,6 +46,8 @@ export default function PainelAdulto() {
         }
         setRecentes(mapa);
       })();
+      espiarProximasPalavras().then(({ palavras }) => setProximasPalavras(palavras));
+      storage.getErrosUltimaSessao().then(setErrosSessaoAnterior);
     }, [])
   );
 
@@ -75,7 +95,51 @@ export default function PainelAdulto() {
           <Pressable style={[styles.tab, aba === 'gravacoes' && styles.tabAtiva]} onPress={() => setAba('gravacoes')}>
             <Text style={[styles.tabTexto, aba === 'gravacoes' && styles.tabTextoAtiva]}>Gravações</Text>
           </Pressable>
+          <Pressable style={[styles.tab, aba === 'jogos' && styles.tabAtiva]} onPress={() => setAba('jogos')}>
+            <Text style={[styles.tabTexto, aba === 'jogos' && styles.tabTextoAtiva]}>Testar jogos</Text>
+          </Pressable>
         </View>
+
+        {aba === 'jogos' ? (
+          <FlatList
+            data={JOGOS_DEV}
+            keyExtractor={(item) => item.fase}
+            contentContainerStyle={styles.lista}
+            ListHeaderComponent={
+              <View style={{ gap: 12, marginBottom: 4 }}>
+                <Text style={styles.avisoJogos}>Abre a sessão direto naquela fase, para testar sem jogar tudo antes.</Text>
+
+                <View style={styles.rotacaoBox}>
+                  <Text style={styles.rotacaoTitulo}>Próxima sessão vai usar</Text>
+                  <Text style={styles.rotacaoTexto}>{proximasPalavras.map((w) => w.palavra).join(', ') || '—'}</Text>
+
+                  <Text style={[styles.rotacaoTitulo, { marginTop: 8 }]}>Erros da sessão anterior (voltam agora)</Text>
+                  <Text style={styles.rotacaoTexto}>{errosSessaoAnterior.length ? errosSessaoAnterior.join(', ') : 'nenhum'}</Text>
+
+                  <Text style={styles.rotacaoNota}>
+                    A rotação só avança quando uma sessão termina de verdade (não é por dia) — pode jogar várias vezes seguidas que cada uma traz palavras novas.
+                  </Text>
+                </View>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <Pressable
+                style={styles.linhaJogo}
+                onPress={() => router.push({ pathname: '/sessao', params: { fase: item.fase } })}
+              >
+                <View style={styles.playIcon}>
+                  <Play color={colors.fundo} size={16} />
+                </View>
+                <Text style={styles.palavra}>{item.label}</Text>
+                {item.novo ? (
+                  <View style={styles.novoBadge}>
+                    <Text style={styles.novoBadgeTexto}>novo</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+            )}
+          />
+        ) : null}
 
         {aba === 'viagem' ? (
           <FlatList
@@ -105,7 +169,9 @@ export default function PainelAdulto() {
               </View>
             )}
           />
-        ) : (
+        ) : null}
+
+        {aba === 'gravacoes' ? (
           <FlatList
             data={gravacoes}
             keyExtractor={(item) => item.id}
@@ -123,7 +189,7 @@ export default function PainelAdulto() {
               </Pressable>
             )}
           />
-        )}
+        ) : null}
 
         <View style={styles.footer}>
           <Pressable style={styles.resetBtn} onPress={confirmarReset} hitSlop={8}>
@@ -180,6 +246,43 @@ const styles = StyleSheet.create({
   },
   playIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.areia, alignItems: 'center', justifyContent: 'center' },
   dataTexto: { fontFamily: fontFamily.corpoSemi, color: colors.turquesaClaro, fontSize: 12, marginTop: 2 },
+  avisoJogos: {
+    fontFamily: fontFamily.corpoSemi,
+    color: colors.turquesaClaro,
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  linhaJogo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16,
+    padding: 14,
+  },
+  rotacaoBox: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 16,
+    padding: 14,
+    gap: 2,
+  },
+  rotacaoTitulo: { fontFamily: fontFamily.corpoExtra, color: colors.turquesaClaro, fontSize: 12 },
+  rotacaoTexto: { fontFamily: fontFamily.corpoSemi, color: colors.areia, fontSize: 14 },
+  rotacaoNota: {
+    fontFamily: fontFamily.corpoSemi,
+    color: colors.turquesaClaro,
+    fontSize: 11,
+    marginTop: 10,
+    lineHeight: 15,
+  },
+  novoBadge: {
+    marginLeft: 'auto',
+    backgroundColor: colors.estrela,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  novoBadgeTexto: { fontFamily: fontFamily.corpoExtra, color: colors.fundo, fontSize: 11 },
   footer: { paddingHorizontal: 20, paddingVertical: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', gap: 10 },
   resetBtn: {
     flexDirection: 'row',

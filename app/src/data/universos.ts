@@ -1,16 +1,67 @@
 export type Universo = {
   id: string;
   nome: string;
-  emoji: string;
+  personagem: string;
   corPrincipal: string;
+  corSuave: string;
   ativo: boolean;
+  /** require() do PNG do personagem */
+  arte: number;
 };
 
 export const universos: Universo[] = [
-  { id: 'fundo_do_mar', nome: 'Fundo do Mar', emoji: '🐙', corPrincipal: '#26C6DA', ativo: true },
-  { id: 'espaco', nome: 'Espaço', emoji: '🚀', corPrincipal: '#6C63FF', ativo: false },
-  { id: 'dinossauros', nome: 'Dinossauros', emoji: '🦕', corPrincipal: '#7CB342', ativo: false },
-  { id: 'reino_magico', nome: 'Reino Mágico', emoji: '🏰', corPrincipal: '#BA68C8', ativo: false },
-  { id: 'futebol', nome: 'Futebol', emoji: '⚽', corPrincipal: '#43A047', ativo: false },
-  { id: 'safari', nome: 'Safári', emoji: '🦁', corPrincipal: '#FB8C00', ativo: false },
+  {
+    id: 'fundo_do_mar',
+    nome: 'Fundo do Mar',
+    personagem: 'Chico',
+    corPrincipal: '#2F80ED',
+    corSuave: '#E3F0FF',
+    ativo: true,
+    arte: require('../../assets/mundos/chico.png'),
+  },
+  {
+    id: 'espaco',
+    nome: 'Espaço',
+    personagem: 'Cosmo',
+    corPrincipal: '#5A3FD6',
+    corSuave: '#ECE6FF',
+    ativo: false,
+    arte: require('../../assets/mundos/cosmo.png'),
+  },
+  {
+    id: 'dinossauros',
+    nome: 'Dinossauros',
+    personagem: 'Dara',
+    corPrincipal: '#12896F',
+    corSuave: '#DEF5EC',
+    ativo: false,
+    arte: require('../../assets/mundos/dara.png'),
+  },
+  {
+    id: 'reino_magico',
+    nome: 'Reino Mágico',
+    personagem: 'Brilha',
+    corPrincipal: '#8A56D6',
+    corSuave: '#F3EBFF',
+    ativo: false,
+    arte: require('../../assets/mundos/brilha.png'),
+  },
+  {
+    id: 'futebol',
+    nome: 'Futebol',
+    personagem: 'Craque',
+    corPrincipal: '#3E8E1E',
+    corSuave: '#E8F6DD',
+    ativo: false,
+    arte: require('../../assets/mundos/craque.png'),
+  },
+  {
+    id: 'safari',
+    nome: 'Safári',
+    personagem: 'Bárbara',
+    corPrincipal: '#A87400',
+    corSuave: '#FFF2CF',
+    ativo: false,
+    arte: require('../../assets/mundos/barbara.png'),
+  },
 ];

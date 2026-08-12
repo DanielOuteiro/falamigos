@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Settings } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,6 +36,23 @@ export default function MapaScreen() {
     }, [])
   );
 
+  async function iniciarSessao() {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const ultima = await storage.getUltimaSessao();
+    if (ultima === hoje) {
+      Alert.alert(
+        'Já treinaram hoje!',
+        'Podem continuar se quiserem — não vamos travar. Mas um pouquinho todo dia costuma funcionar melhor do que tudo de uma vez.',
+        [
+          { text: 'Deixar pra depois', style: 'cancel' },
+          { text: 'Continuar mesmo assim', onPress: () => router.push('/sessao') },
+        ]
+      );
+      return;
+    }
+    router.push('/sessao');
+  }
+
   const trilhoHeight = height * 0.76;
   const trilhoTop = height * 0.16;
   const pontos = gerarTrilho(TOTAL_NOS, width, trilhoHeight);
@@ -58,7 +75,7 @@ export default function MapaScreen() {
             return <NoFuturo key={i} pos={p} delay={i * 250} opacidade={Math.max(0.35, 0.65 - (i - todayIndex) * 0.06)} />;
           })}
 
-          <NoHoje pos={noHojePos} onPress={() => router.push('/sessao')} />
+          <NoHoje pos={noHojePos} onPress={iniciarSessao} />
 
           <View
             pointerEvents="none"

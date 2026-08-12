@@ -1,72 +1,142 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
-import Svg, { Ellipse, Path, Rect } from 'react-native-svg';
-import { OceanBackground } from '@/components/scene/OceanBackground';
-import { ChicoSprite, ChicoPose } from '@/components/ChicoSprite';
-import { SpeechBubble } from '@/components/ui/SpeechBubble';
+import { Audio } from 'expo-av';
+import type { ChicoPose } from '@/components/ChicoSprite';
 import { WordArt } from '@/components/WordArt';
 import { MicButton } from '@/components/MicButton';
-import { colors, fontFamily } from '@/theme/colors';
+import { CofreFechando } from '@/components/onboarding/CofreFechando';
+import { useWorldFlow } from '@/components/onboarding/WorldFlowChrome';
+import { PontosProgresso } from '@/components/sessao/PontosProgresso';
+import { fontFamily } from '@/theme/colors';
+import { WORLD_INSTRUCTION_TOP, worldBrand } from '@/theme/worldBrand';
 import { onboardingDraft } from '@/lib/onboardingDraft';
 import { storage, type Gravacao } from '@/lib/storage';
-import { speakChico, speakModel } from '@/lib/voice';
+import { speakModel } from '@/lib/voice';
+import { espiarProximasPalavras } from '@/lib/palavrasDoDia';
+import type { Word } from '@/data/modelWords';
 
-const PALAVRAS_CAPSULA = ['chave', 'peixe', 'bruxa', 'cha', 'cachorro'];
+const chicoCofrinhoSource = require('../../assets/chico-cofrinho.mp3');
 
+/**
+ * A cápsula do tempo usa as mesmas 5 palavras que a 1ª sessão de verdade vai
+ * usar (`espiarProximasPalavras`) — mas só *espia*, não confirma avanço. A
+ * cápsula não é uma sessão em si, é a apresentação das palavras que a 1ª
+ * sessão (logo a seguir, em `/sessao`) vai treinar de verdade. Quem confirma
+ * o avanço da rotação é essa 1ª sessão, ao terminar — assim as palavras que
+ * a criança acabou de guardar no tesouro são exatamente as mesmas do
+ * Aquecimento/Hora de Falar/Caça-Sílaba que vêm a seguir.
+ */
 export default function CapsulaScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ debugChest?: string }>();
   const [indice, setIndice] = useState(-1);
-  const [pose, setPose] = useState<ChicoPose>('idle');
-  const [fechando, setFechando] = useState(false);
+  const [, setPose] = useState<ChicoPose>('idle');
+  const [fechando, setFechando] = useState(params.debugChest === '1');
   const [gravacoes, setGravacoes] = useState<Gravacao[]>([]);
+  const [palavras, setPalavras] = useState<Word[] | null>(null);
+  const [palavrasGuardadas, setPalavrasGuardadas] = useState<string[]>([]);
   const dataHoje = new Date().toLocaleDateString('pt-BR');
 
+  const { setPersonagemTapHandler, setDebugChestHandler } = useWorldFlow();
+  const promptRef = useRef<Audio.Sound | null>(null);
+  const playPromptRef = useRef<() => Promise<void>>(async () => {});
+  const debugChestRef = useRef(params.debugChest === '1');
+  const palavrasRef = useRef<Word[] | null>(null);
+
   useEffect(() => {
-    (async () => {
-      setPose('talking');
-      await speakChico('cofre');
-      setPose('idle');
-      setIndice(0);
-    })();
+    espiarProximasPalavras().then(({ palavras: p }) => {
+      palavrasRef.current = p;
+      setPalavras(p);
+      if (debugChestRef.current) setPalavrasGuardadas(p.map((w) => w.id));
+    });
   }, []);
 
   useEffect(() => {
-    if (indice < 0 || indice >= PALAVRAS_CAPSULA.length) return;
+    let cancelled = false;
+
+    async function playPrompt() {
+      if (cancelled) return;
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+        });
+        if (promptRef.current) {
+          await promptRef.current.setPositionAsync(0);
+          await promptRef.current.playAsync();
+          return;
+        }
+        const { sound } = await Audio.Sound.createAsync(chicoCofrinhoSource, { shouldPlay: true });
+        if (cancelled) {
+          await sound.unloadAsync();
+          return;
+        }
+        promptRef.current = sound;
+        await new Promise<void>((resolve) => {
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if (!status.isLoaded) return;
+            if (status.didJustFinish) resolve();
+          });
+        });
+      } catch {
+        // áudio não deve bloquear o ecrã
+      }
+    }
+
+    playPromptRef.current = playPrompt;
+    setPersonagemTapHandler(() => {
+      void playPromptRef.current();
+    });
+    setDebugChestHandler(() => {
+      debugChestRef.current = true;
+      setPalavrasGuardadas(palavrasRef.current?.map((w) => w.id) ?? []);
+      setFechando(true);
+    });
+
+    (async () => {
+      setPose('talking');
+      await playPrompt();
+      if (cancelled) return;
+      setPose('idle');
+      setIndice(0);
+    })();
+
+    return () => {
+      cancelled = true;
+      setPersonagemTapHandler(null);
+      setDebugChestHandler(null);
+      const s = promptRef.current;
+      promptRef.current = null;
+      void s?.stopAsync().then(() => s.unloadAsync());
+    };
+  }, [setPersonagemTapHandler, setDebugChestHandler]);
+
+  useEffect(() => {
+    if (!palavras || indice < 0 || indice >= palavras.length) return;
     (async () => {
       await new Promise((r) => setTimeout(r, 350));
       setPose('talking');
-      await speakModel(wordName(PALAVRAS_CAPSULA[indice]));
+      await speakModel(palavras[indice].palavra);
       setPose('idle');
     })();
-  }, [indice]);
-
-  function wordName(id: string) {
-    const map: Record<string, string> = {
-      chave: 'chave',
-      peixe: 'peixe',
-      bruxa: 'bruxa',
-      cha: 'chá',
-      cachorro: 'cachorro',
-    };
-    return map[id] ?? id;
-  }
+  }, [indice, palavras]);
 
   async function onWordCaptured(uri: string) {
-    const wordId = PALAVRAS_CAPSULA[indice];
+    if (!palavras) return;
+    const word = palavras[indice];
     const novaGravacao: Gravacao = {
-      id: `${wordId}_${Date.now()}`,
-      wordId,
-      palavra: wordName(wordId),
+      id: `${word.id}_${Date.now()}`,
+      wordId: word.id,
+      palavra: word.palavra,
       uri,
       criadoEm: Date.now(),
     };
     const atualizadas = [...gravacoes, novaGravacao];
     setGravacoes(atualizadas);
 
-    if (indice + 1 >= PALAVRAS_CAPSULA.length) {
+    if (indice + 1 >= palavras.length) {
       await finalizarCapsula(atualizadas);
     } else {
       setIndice((i) => i + 1);
@@ -74,140 +144,181 @@ export default function CapsulaScreen() {
   }
 
   async function finalizarCapsula(atualizadas: Gravacao[]) {
+    setPalavrasGuardadas(atualizadas.map((g) => g.wordId));
     setFechando(true);
+    try {
+      await promptRef.current?.stopAsync();
+    } catch {
+      // ignore
+    }
     await storage.setCapsulaDia0(atualizadas);
     for (const g of atualizadas) {
       await storage.adicionarGravacao(g);
     }
     await storage.setPerfil({ ...onboardingDraft });
     await storage.setOnboardingCompleto(true);
-    setTimeout(() => {
-      router.replace('/sessao');
-    }, 2200);
   }
+
+  const irParaSessao = useCallback(() => {
+    if (debugChestRef.current) {
+      debugChestRef.current = false;
+      setFechando(false);
+      return;
+    }
+    router.replace('/sessao');
+  }, [router]);
 
   if (fechando) {
-    return <CofreFechando data={dataHoje} nome={onboardingDraft.nome} />;
+    return (
+      <CofreFechando
+        wordIds={palavrasGuardadas.length ? palavrasGuardadas : (palavras?.map((w) => w.id) ?? [])}
+        data={dataHoje}
+        nome={onboardingDraft.nome || 'amigo'}
+        onComplete={irParaSessao}
+      />
+    );
   }
 
-  const wordId = indice >= 0 ? PALAVRAS_CAPSULA[indice] : null;
+  if (!palavras) {
+    return <SafeAreaView style={styles.root} />;
+  }
+
+  const wordAtual = indice >= 0 ? palavras[indice] : null;
+  const intro = indice <= 0;
 
   return (
-    <View style={styles.root}>
-      <OceanBackground bubbles={6} />
-      <SafeAreaView style={styles.content}>
-        <ChicoSprite pose={pose} size={130} />
-        <SpeechBubble>
-          {indice === 0
-            ? 'Vamos guardar a sua voz no cofrinho? Fale as palavras!'
-            : `Palavra ${indice + 1} de ${PALAVRAS_CAPSULA.length}`}
-        </SpeechBubble>
+    <SafeAreaView style={styles.root}>
+      <View style={styles.progress}>
+        <PontosProgresso
+          total={palavras.length}
+          atual={Math.max(0, indice + 1)}
+        />
+      </View>
 
-        {wordId && (
-          <View style={styles.wordZone}>
-            <WordArt wordId={wordId} size={92} />
-            <Text style={styles.palavra}>{wordName(wordId)}</Text>
+      <View style={styles.content}>
+        <View style={styles.upper}>
+          <View style={styles.bubble}>
+            <Text style={styles.bubbleEyebrow}>
+              {intro ? 'Cofrinho da voz' : `Palavra ${indice + 1} de ${palavras.length}`}
+            </Text>
+            <Text style={styles.bubbleText}>
+              {intro
+                ? 'Vamos guardar a sua voz no cofrinho? Fale as seguintes palavras:'
+                : 'Segura o microfone e fala!'}
+            </Text>
           </View>
-        )}
+
+          {wordAtual ? (
+            <View style={styles.wordCard}>
+              <WordArt wordId={wordAtual.id} size={118} />
+              <Text style={styles.palavra}>{wordAtual.palavra}</Text>
+            </View>
+          ) : (
+            <View style={styles.wordPlaceholder} />
+          )}
+        </View>
 
         <View style={styles.micZone}>
-          {wordId && (
+          {wordAtual ? (
             <MicButton
-              key={wordId}
-              wordId={wordId}
-              palavra={wordName(wordId)}
-              size={190}
+              key={wordAtual.id}
+              wordId={wordAtual.id}
+              palavra={wordAtual.palavra}
+              size={286}
               onPoseChange={setPose}
               onCompleted={onWordCaptured}
             />
-          )}
+          ) : null}
         </View>
-      </SafeAreaView>
-    </View>
-  );
-}
-
-function CofreFechando({ data, nome }: { data: string; nome: string }) {
-  const t = useSharedValue(0);
-  useEffect(() => {
-    t.value = withSequence(withTiming(1, { duration: 900 }), withTiming(1, { duration: 400 }));
-  }, []);
-  const lidStyle = useAnimatedStyle(() => ({
-    transform: [{ rotateX: `${(1 - t.value) * -50}deg` }],
-  }));
-
-  return (
-    <View style={styles.root}>
-      <OceanBackground bubbles={5} variant="premio" />
-      <SafeAreaView style={styles.content}>
-        <Text style={styles.tituloCofre}>Cofrinho guardado!</Text>
-        <View style={styles.chestWrap}>
-          <Svg width={220} height={170} viewBox="0 0 280 220" style={styles.chestBase}>
-            <Path
-              d="M28,116 C28,96 60,86 140,86 C220,86 252,96 252,116 L262,196 C262,210 232,216 140,216 C48,216 18,210 18,196 Z"
-              fill="#8A5A3B"
-            />
-            <Path
-              d="M40,124 C40,110 70,102 140,102 C210,102 240,110 240,124 L248,192 C248,202 220,206 140,206 C60,206 32,202 32,192 Z"
-              fill="#A9714C"
-            />
-            <Rect x={120} y={120} width={40} height={46} rx={10} fill={colors.estrela} />
-          </Svg>
-          <Animated.View style={[styles.chestLid, lidStyle]}>
-            <Svg width={220} height={90} viewBox="0 0 240 90">
-              <Path
-                d="M8,90 C8,48 46,34 120,34 C194,34 232,48 232,90 Z"
-                fill="#8A5A3B"
-              />
-              <Path
-                d="M24,88 C24,56 58,44 120,44 C182,44 216,56 216,88 Z"
-                fill="#B37E56"
-              />
-            </Svg>
-          </Animated.View>
-        </View>
-        <Text style={styles.dataTexto}>{data}</Text>
-        <Text style={styles.legendaCofre}>{`A voz de ${nome} de hoje ficará guardada para vocês compararem depois.`}</Text>
-      </SafeAreaView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.fundo },
+  root: { flex: 1, backgroundColor: 'transparent' },
+  progress: {
+    alignItems: 'center',
+    paddingTop: 4,
+    zIndex: 12,
+  },
   content: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 18,
-    paddingHorizontal: 24,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: WORLD_INSTRUCTION_TOP - 28,
+    paddingBottom: 8,
+    minHeight: 0,
+    zIndex: 10,
+    overflow: 'visible',
   },
-  wordZone: { alignItems: 'center', gap: 6 },
+  upper: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 28,
+    flexShrink: 1,
+    minHeight: 0,
+    zIndex: 11,
+  },
+  bubble: {
+    backgroundColor: worldBrand.balão,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 28,
+    maxWidth: '94%',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+    zIndex: 20,
+    shadowColor: worldBrand.balãoSombra,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  bubbleEyebrow: {
+    fontFamily: fontFamily.titulo,
+    color: worldBrand.accent,
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  bubbleText: {
+    fontFamily: fontFamily.titulo,
+    color: worldBrand.tinta,
+    fontSize: 22,
+    textAlign: 'center',
+    lineHeight: 28,
+  },
+  wordCard: {
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: worldBrand.balão,
+    borderRadius: 28,
+    paddingHorizontal: 26,
+    paddingVertical: 14,
+    minWidth: 170,
+    marginTop: 8,
+    shadowColor: worldBrand.balãoSombra,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  wordPlaceholder: { height: 110 },
   palavra: {
     fontFamily: fontFamily.titulo,
-    color: colors.areia,
-    fontSize: 24,
+    color: worldBrand.tinta,
+    fontSize: 30,
   },
-  micZone: { marginTop: 20, alignItems: 'center', justifyContent: 'center', minHeight: 260 },
-  tituloCofre: {
-    fontFamily: fontFamily.titulo,
-    color: colors.estrela,
-    fontSize: 26,
-    textAlign: 'center',
-  },
-  chestWrap: { width: 220, height: 200, alignItems: 'center', justifyContent: 'flex-end' },
-  chestBase: { position: 'absolute', bottom: 0 },
-  chestLid: { position: 'absolute', top: 6, left: 0 },
-  dataTexto: {
-    fontFamily: fontFamily.corpoExtra,
-    color: colors.branco,
-    fontSize: 20,
-  },
-  legendaCofre: {
-    fontFamily: fontFamily.corpoSemi,
-    color: colors.turquesaClaro,
-    textAlign: 'center',
-    fontSize: 14,
-    paddingHorizontal: 20,
+  micZone: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 4,
+    marginTop: 'auto',
+    flexShrink: 0,
+    overflow: 'visible',
+    zIndex: 12,
   },
 });

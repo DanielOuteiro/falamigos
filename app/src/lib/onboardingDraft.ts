@@ -4,7 +4,7 @@
  * quando a cápsula do tempo é concluída (ver storage.ts).
  */
 export const onboardingDraft: { nome: string; idade: number; universo: string } = {
-  nome: 'Liam',
+  nome: '',
   idade: 5,
   universo: 'fundo_do_mar',
 };

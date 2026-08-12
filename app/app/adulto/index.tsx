@@ -1,10 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, fontFamily } from '@/theme/colors';
 import { hapticLeve, hapticSucesso } from '@/lib/haptics';
+
+/**
+ * Tranca temporariamente desligada (fase de testes) — vai direto ao painel.
+ * Volta a `false` para reativar a senha sem apagar nada abaixo.
+ */
+const GATE_ATIVO = false;
 
 const SENHA = [3, 7, 2];
 
@@ -21,6 +27,10 @@ export default function GateAdulto() {
   const router = useRouter();
   const numeros = useMemo(() => embaralhar([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), []);
   const [progresso, setProgresso] = useState<number[]>([]);
+
+  if (!GATE_ATIVO) {
+    return <Redirect href="/adulto/painel" />;
+  }
 
   function tocar(n: number) {
     const novo = [...progresso, n];

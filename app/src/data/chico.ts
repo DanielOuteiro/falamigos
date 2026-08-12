@@ -14,7 +14,7 @@ export const chicoLines = {
   denovo: 'De novo? Segura e fala!',
   ouvidos: 'Ouvidos mágicos: só escuta!',
   cofre: 'Vamos guardar a sua voz no cofrinho?',
-  chispa: 'Diga o nome dele: CHISPA!',
+  chispa: 'Chame por ele: CHICO!',
   nasceu: 'Ele nasceu!',
   estrela: 'Você ganhou uma estrela!',
   tchau: 'Até amanhã, {nome}!',

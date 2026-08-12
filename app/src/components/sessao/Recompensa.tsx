@@ -4,7 +4,7 @@ import { Bau } from '@/components/sessao/Bau';
 import { OvoFragmento } from '@/components/sessao/OvoFragmento';
 import { InvocacaoButton } from '@/components/sessao/InvocacaoButton';
 import { ConfettiBubbles } from '@/components/sessao/ConfettiBubbles';
-import { ChispaSprite } from '@/components/ChispaSprite';
+import { MundoPersonagem } from '@/components/MundoPersonagem';
 import { SpeechBubble } from '@/components/ui/SpeechBubble';
 import { colors, fontFamily } from '@/theme/colors';
 import { speakChico } from '@/lib/voice';
@@ -84,7 +84,7 @@ export function Recompensa({
 
       {etapa === 'invocacao' && (
         <>
-          <SpeechBubble>Diga o nome dele: CHISPA!</SpeechBubble>
+          <SpeechBubble>Chame por ele: CHICO!</SpeechBubble>
           <OvoFragmento fragmentos={holds + 1} size={150} />
           <InvocacaoButton onHoldValido={onHoldValido} disabled={holds >= 3} />
           <Text style={styles.legenda}>{`Segure e fale — ${holds} de 3`}</Text>
@@ -93,9 +93,9 @@ export function Recompensa({
 
       {etapa === 'nasceu' && (
         <>
-          <SpeechBubble>Ele nasceu! Este é o Chispa!</SpeechBubble>
-          <ChispaSprite size={170} />
-          <Text style={styles.tituloNasceu}>CHISPA</Text>
+          <SpeechBubble>Ele nasceu! Este é o Chico!</SpeechBubble>
+          <MundoPersonagem size={170} />
+          <Text style={styles.tituloNasceu}>CHICO</Text>
         </>
       )}
     </View>

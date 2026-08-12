@@ -12,11 +12,13 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.falamigos.app",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "O Falamigos usa o microfone para você gravar sua voz durante os exercícios de fala."
+        "NSMicrophoneUsageDescription": "O Falamigos usa o microfone para você gravar sua voz durante os exercícios de fala.",
+        "NSMotionUsageDescription": "O Falamigos usa o movimento do telefone para um efeito suave de profundidade na tela."
       }
     },
     "android": {
       "package": "com.falamigos.app",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#0B4F6C",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -41,7 +43,8 @@
         {
           "microphonePermission": "O Falamigos usa o microfone para você gravar sua voz durante os exercícios de fala."
         }
-      ]
+      ],
+      "expo-sensors"
     ]
   }
 }

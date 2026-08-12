@@ -1,17 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle, Defs, Ellipse, Path, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
+import { Mic } from 'lucide-react-native';
 import { colors } from '@/theme/colors';
 import { useRingOut } from '@/lib/motion';
 import { hapticLeve, hapticSucesso } from '@/lib/haptics';
-import { speakChico, speakModel, speakSyllables } from '@/lib/voice';
+import { speakChico, speakModel } from '@/lib/voice';
 import {
   discardRecording,
   ensureMicPermission,
@@ -22,8 +24,13 @@ import {
   stopRecording,
   type RecordingHandle,
 } from '@/lib/recorder';
-import { BubbleButton } from '@/components/ui/BubbleButton';
 import type { ChicoPose } from '@/components/ChicoSprite';
+
+const clamSource = require('../../assets/concha-perola.png');
+const repeatSource = require('../../assets/ui/btn-repetir.png');
+const starSource = require('../../assets/ui/btn-estrela.png');
+/** Arte 1024×737. */
+const CLAM_ASPECT = 737 / 1024;
 
 const MIN_DURATION_MS = 400;
 const MAX_DURATION_MS = 6000;
@@ -39,6 +46,14 @@ type Props = {
   size?: number;
   onPoseChange?: (pose: ChicoPose) => void;
   onCompleted: (uri: string) => void;
+  /** Chamado sempre que a criança/pai pede pra repetir — sinal de dificuldade nessa palavra. */
+  onRepeat?: () => void;
+  /**
+   * Como falar o modelo ao repetir — por padrão fala `palavra` via speakModel
+   * (clip de palavra única). Frases inteiras (Eco/Travessia) devem passar
+   * isso pra tocar o clip da frase em vez de cair no TTS lendo a frase toda.
+   */
+  onFalarModelo?: () => Promise<void>;
 };
 
 export function MicButton({
@@ -49,6 +64,8 @@ export function MicButton({
   size = 220,
   onPoseChange,
   onCompleted,
+  onRepeat,
+  onFalarModelo,
 }: Props) {
   const [state, setState] = useState<MicState>('idle');
   const [repeatCount, setRepeatCount] = useState(0);
@@ -64,8 +81,9 @@ export function MicButton({
 
   const level = useSharedValue(0);
 
-  const ringA = useRingOut(2200, 0);
-  const ringB = useRingOut(2200, 1100);
+  // Idle: logo fora da pérola/concha (visíveis, sem começar longe demais).
+  const ringA = useRingOut(2400, 0, { fromScale: 0.58, toScale: 1.05, fromOpacity: 0.72 });
+  const ringB = useRingOut(2400, 1200, { fromScale: 0.58, toScale: 1.05, fromOpacity: 0.55 });
 
   const recordRingStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 + level.value * 0.55 }],
@@ -172,16 +190,17 @@ export function MicButton({
   async function handleRepeat() {
     if (busy) return;
     setBusy(true);
-    setRepeatCount((c) => c + 1);
-    onPoseChange?.('talking');
-    if (silabas && silabas.length > 0) {
-      await speakSyllables(silabas, onSilabaFalando);
-    } else {
-      await speakModel(palavra);
-    }
-    onPoseChange?.('idle');
-    setState('idle');
     setProntoParaAcoes(false);
+    setRepeatCount((c) => c + 1);
+    onRepeat?.();
+    // Concha volta — depois fala o modelo e fica pronta a gravar.
+    setState('idle');
+    clamT.value = withSpring(1, { damping: 14, stiffness: 160 });
+    actionsT.value = withTiming(0, { duration: 160 });
+    onPoseChange?.('talking');
+    await (onFalarModelo ? onFalarModelo() : speakModel(palavra));
+    onSilabaFalando?.(null);
+    onPoseChange?.('idle');
     setBusy(false);
   }
 
@@ -200,83 +219,183 @@ export function MicButton({
     onCompleted(finalUri);
   }
 
+  const pressScale = useSharedValue(1);
+  const clamT = useSharedValue(1);
+  const actionsT = useSharedValue(0);
+
+  useEffect(() => {
+    if (state === 'captured' && prontoParaAcoes) {
+      clamT.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) });
+      actionsT.value = withSpring(1, { damping: 13, stiffness: 150 });
+    } else if (state !== 'captured') {
+      clamT.value = withSpring(1, { damping: 14, stiffness: 160 });
+      actionsT.value = withTiming(0, { duration: 140 });
+    }
+  }, [state, prontoParaAcoes]);
+
+  const pressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressScale.value }],
+  }));
+
+  const clamStyle = useAnimatedStyle(() => ({
+    opacity: clamT.value,
+    transform: [{ scale: 0.86 + clamT.value * 0.14 }],
+  }));
+
+  const actionsStyle = useAnimatedStyle(() => ({
+    opacity: actionsT.value,
+    transform: [{ scale: 0.82 + actionsT.value * 0.18 }],
+  }));
+
+  const height = size * CLAM_ASPECT;
+  /** Caixa dos anéis — espaço para o pulse sem cortar; idle fica perto da pérola. */
+  const ringBox = Math.round(size * 1.35);
+  const recording = state === 'recording';
+  const showActions = state === 'captured' && prontoParaAcoes;
+  const btnSize = Math.round(size * 0.34);
+  const repeatDimmed = busy || repeatCount >= MAX_REPEATS;
+
   return (
-    <View style={styles.wrap}>
-      {state !== 'captured' && (
+    <View style={[styles.wrap, { width: size, height }]}>
+      {!showActions && state !== 'captured' && (
         <>
-          <Animated.View style={[StyleSheet.absoluteFill, ringA]} pointerEvents="none">
-            <RingSvg size={size} color={colors.turquesaClaro} strokeWidth={6} />
+          <Animated.View
+            style={[styles.rings, { width: ringBox, height: ringBox, marginLeft: -ringBox / 2, marginTop: -ringBox / 2 }, ringA]}
+            pointerEvents="none"
+          >
+            <RingSvg box={ringBox} color="rgba(123,230,242,0.9)" strokeWidth={6} />
           </Animated.View>
-          <Animated.View style={[StyleSheet.absoluteFill, ringB]} pointerEvents="none">
-            <RingSvg size={size} color={colors.turquesa} strokeWidth={8} />
+          <Animated.View
+            style={[styles.rings, { width: ringBox, height: ringBox, marginLeft: -ringBox / 2, marginTop: -ringBox / 2 }, ringB]}
+            pointerEvents="none"
+          >
+            <RingSvg box={ringBox} color="rgba(38,198,218,0.75)" strokeWidth={8} />
           </Animated.View>
         </>
       )}
 
-      {state === 'recording' && (
-        <Animated.View style={[StyleSheet.absoluteFill, recordRingStyle]} pointerEvents="none">
-          <RingSvg size={size} color={colors.turquesaSuave} strokeWidth={10} />
+      {recording && (
+        <Animated.View
+          style={[
+            styles.rings,
+            { width: ringBox, height: ringBox, marginLeft: -ringBox / 2, marginTop: -ringBox / 2 },
+            recordRingStyle,
+          ]}
+          pointerEvents="none"
+        >
+          <RingSvg box={ringBox} color="rgba(255,255,255,0.85)" strokeWidth={11} />
         </Animated.View>
       )}
 
-      <Pressable
-        disabled={state === 'captured' || busy}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        style={{ width: size, height: size }}
+      <Animated.View
+        style={[styles.layer, clamStyle]}
+        pointerEvents={showActions ? 'none' : 'box-none'}
       >
-        <ShellPearl size={size} pressed={state === 'recording'} />
-      </Pressable>
+        <Pressable
+          disabled={showActions || busy || state === 'captured'}
+          onPressIn={() => {
+            pressScale.value = withSpring(0.94, { damping: 14 });
+            void handlePressIn();
+          }}
+          onPressOut={() => {
+            pressScale.value = withSpring(1, { damping: 10 });
+            void handlePressOut();
+          }}
+          style={{ width: size, height }}
+        >
+          <Animated.View style={[{ width: size, height }, pressStyle]}>
+            <Image
+              source={clamSource}
+              style={[styles.clam, recording && styles.clamRecording]}
+              resizeMode="contain"
+              accessibilityLabel="Concha com pérola — segura e fala"
+            />
+            <View style={styles.micIcon} pointerEvents="none">
+              <Mic
+                color={recording ? colors.coralEscuro : colors.fundo}
+                size={size * 0.17}
+                strokeWidth={2.7}
+              />
+            </View>
+          </Animated.View>
+        </Pressable>
+      </Animated.View>
 
-      {state === 'captured' && prontoParaAcoes && (
-        <View style={styles.actions}>
-          <BubbleButton
-            emoji="🔁"
-            size={68}
-            onPress={handleRepeat}
-            disabled={busy || repeatCount >= MAX_REPEATS}
-            dim={repeatCount >= MAX_REPEATS}
-          />
-          <BubbleButton emoji="⭐" size={68} color={colors.estrela} onPress={handleStar} disabled={busy} />
-        </View>
-      )}
+      <Animated.View
+        style={[styles.actions, actionsStyle]}
+        pointerEvents={showActions ? 'box-none' : 'none'}
+      >
+        {showActions ? (
+          <>
+            <ActionImageButton
+              source={repeatSource}
+              size={btnSize}
+              label="Repetir"
+              onPress={handleRepeat}
+              disabled={repeatDimmed}
+              dim={repeatCount >= MAX_REPEATS}
+            />
+            <ActionImageButton
+              source={starSource}
+              size={btnSize}
+              label="Guardar"
+              onPress={handleStar}
+              disabled={busy}
+            />
+          </>
+        ) : null}
+      </Animated.View>
     </View>
   );
 }
 
-function RingSvg({ size, color, strokeWidth }: { size: number; color: string; strokeWidth: number }) {
-  const vb = 260;
+function ActionImageButton({
+  source,
+  size,
+  label,
+  onPress,
+  disabled,
+  dim,
+}: {
+  source: number;
+  size: number;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  dim?: boolean;
+}) {
+  const scale = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${vb} ${vb}`}>
-      <Circle cx={130} cy={140} r={104} fill="none" stroke={color} strokeWidth={strokeWidth} />
-    </Svg>
+    <Pressable
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPressIn={() => {
+        scale.value = withSpring(0.9, { damping: 12 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 9 });
+      }}
+      onPress={() => {
+        if (disabled) return;
+        hapticLeve();
+        onPress();
+      }}
+      style={{ width: size, height: size, opacity: dim ? 0.4 : 1 }}
+    >
+      <Animated.View style={[{ width: size, height: size }, style]}>
+        <Image source={source} style={styles.actionImg} resizeMode="contain" />
+      </Animated.View>
+    </Pressable>
   );
 }
 
-function ShellPearl({ size, pressed }: { size: number; pressed: boolean }) {
+function RingSvg({ box, color, strokeWidth }: { box: number; color: string; strokeWidth: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 260 260">
-      <Defs>
-        <RadialGradient id="pearlBtn" cx="35%" cy="30%" r="75%">
-          <Stop offset="0%" stopColor="#FFFFFF" />
-          <Stop offset="55%" stopColor="#DFF8FC" />
-          <Stop offset="100%" stopColor="#8FD9E6" />
-        </RadialGradient>
-      </Defs>
-      <Path
-        d="M22,152 C22,58 238,58 238,152 C238,152 200,120 130,120 C60,120 22,152 22,152 Z"
-        fill="#FFC9B8"
-      />
-      <Path
-        d="M26,150 C60,120 96,110 130,110 C164,110 200,120 234,150 C214,214 176,240 130,240 C84,240 46,214 26,150 Z"
-        fill="#FF7E67"
-      />
-      <Path
-        d="M40,156 C70,132 100,124 130,124 C160,124 190,132 220,156 C204,208 172,230 130,230 C88,230 56,208 40,156 Z"
-        fill="#FF9A86"
-      />
-      <Circle cx={130} cy={164} r={66} fill="url(#pearlBtn)" opacity={pressed ? 0.85 : 1} />
-      <Ellipse cx={106} cy={138} rx={20} ry={13} fill="#FFFFFF" opacity={0.85} rotation={-30} originX={106} originY={138} />
+    <Svg width={box} height={box} viewBox="0 0 260 260">
+      <Circle cx={130} cy={130} r={64} fill="none" stroke={color} strokeWidth={strokeWidth} />
     </Svg>
   );
 }
@@ -285,11 +404,46 @@ const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
+  },
+  layer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+  },
+  rings: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+  },
+  clam: {
+    width: '100%',
+    height: '100%',
+  },
+  clamRecording: {
+    opacity: 0.96,
+  },
+  micIcon: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '40%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actions: {
-    position: 'absolute',
-    bottom: -50,
+    ...StyleSheet.absoluteFillObject,
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 28,
+  },
+  actionImg: {
+    width: '100%',
+    height: '100%',
   },
 });
