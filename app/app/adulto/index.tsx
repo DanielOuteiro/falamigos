@@ -7,10 +7,12 @@ import { colors, fontFamily } from '@/theme/colors';
 import { hapticLeve, hapticSucesso } from '@/lib/haptics';
 
 /**
- * Tranca temporariamente desligada (fase de testes) — vai direto ao painel.
- * Volta a `false` para reativar a senha sem apagar nada abaixo.
+ * Ativa sempre em builds de produção/TestFlight/Play (protege dados da
+ * criança e o menu de dev do painel). Em desenvolvimento (`__DEV__`) fica
+ * desligada só para agilizar testes — nunca desligar isto manualmente
+ * para uma build que vá para a loja.
  */
-const GATE_ATIVO = false;
+const GATE_ATIVO = !__DEV__;
 
 const SENHA = [3, 7, 2];
 

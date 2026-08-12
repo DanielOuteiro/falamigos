@@ -95,12 +95,14 @@ export default function PainelAdulto() {
           <Pressable style={[styles.tab, aba === 'gravacoes' && styles.tabAtiva]} onPress={() => setAba('gravacoes')}>
             <Text style={[styles.tabTexto, aba === 'gravacoes' && styles.tabTextoAtiva]}>Gravações</Text>
           </Pressable>
-          <Pressable style={[styles.tab, aba === 'jogos' && styles.tabAtiva]} onPress={() => setAba('jogos')}>
-            <Text style={[styles.tabTexto, aba === 'jogos' && styles.tabTextoAtiva]}>Testar jogos</Text>
-          </Pressable>
+          {__DEV__ ? (
+            <Pressable style={[styles.tab, aba === 'jogos' && styles.tabAtiva]} onPress={() => setAba('jogos')}>
+              <Text style={[styles.tabTexto, aba === 'jogos' && styles.tabTextoAtiva]}>Testar jogos</Text>
+            </Pressable>
+          ) : null}
         </View>
 
-        {aba === 'jogos' ? (
+        {__DEV__ && aba === 'jogos' ? (
           <FlatList
             data={JOGOS_DEV}
             keyExtractor={(item) => item.fase}

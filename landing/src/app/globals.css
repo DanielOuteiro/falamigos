@@ -175,6 +175,45 @@ a:hover {
   color: #ffd166;
 }
 
+.legal-content {
+  font-size: 16.5px;
+  line-height: 1.75;
+  color: #44506e;
+}
+
+.legal-content h2 {
+  font-family: var(--font-fredoka), Fredoka, sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: #1f2a44;
+  margin: 40px 0 14px;
+}
+
+.legal-content h2:first-child {
+  margin-top: 0;
+}
+
+.legal-content p {
+  margin: 0 0 16px;
+}
+
+.legal-content ul {
+  margin: 0 0 16px;
+  padding-left: 22px;
+}
+
+.legal-content li {
+  margin-bottom: 8px;
+}
+
+.legal-content strong {
+  color: #1f2a44;
+}
+
+.legal-content a {
+  font-weight: 700;
+}
+
 .wave-bar {
   animation: wavepulse 1.1s ease-in-out infinite;
 }

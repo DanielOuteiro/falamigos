@@ -1504,6 +1504,30 @@ export default function Home() {
                 ola@falamigos.com.br
               </a>
             </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                fontSize: 14.5,
+              }}
+            >
+              <div
+                className="font-fredoka"
+                style={{ fontWeight: 600, color: "#fff", fontSize: 15 }}
+              >
+                Legal
+              </div>
+              <a href="/privacidade" className="footer-link">
+                Privacidade
+              </a>
+              <a href="/termos" className="footer-link">
+                Termos de uso
+              </a>
+              <a href="/suporte" className="footer-link">
+                Suporte
+              </a>
+            </div>
           </div>
         </div>
         <div

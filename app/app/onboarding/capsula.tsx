@@ -31,9 +31,10 @@ const chicoCofrinhoSource = require('../../assets/chico-cofrinho.mp3');
 export default function CapsulaScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ debugChest?: string }>();
+  const debugChestAtivo = __DEV__ && params.debugChest === '1';
   const [indice, setIndice] = useState(-1);
   const [, setPose] = useState<ChicoPose>('idle');
-  const [fechando, setFechando] = useState(params.debugChest === '1');
+  const [fechando, setFechando] = useState(debugChestAtivo);
   const [gravacoes, setGravacoes] = useState<Gravacao[]>([]);
   const [palavras, setPalavras] = useState<Word[] | null>(null);
   const [palavrasGuardadas, setPalavrasGuardadas] = useState<string[]>([]);
@@ -42,7 +43,7 @@ export default function CapsulaScreen() {
   const { setPersonagemTapHandler, setDebugChestHandler } = useWorldFlow();
   const promptRef = useRef<Audio.Sound | null>(null);
   const playPromptRef = useRef<() => Promise<void>>(async () => {});
-  const debugChestRef = useRef(params.debugChest === '1');
+  const debugChestRef = useRef(debugChestAtivo);
   const palavrasRef = useRef<Word[] | null>(null);
 
   useEffect(() => {

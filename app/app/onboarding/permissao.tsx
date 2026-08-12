@@ -56,9 +56,11 @@ export default function PermissaoScreen() {
     setPersonagemTapHandler(() => {
       void playRef.current();
     });
-    setDebugChestHandler(() => {
-      router.push({ pathname: '/onboarding/capsula', params: { debugChest: '1' } });
-    });
+    if (__DEV__) {
+      setDebugChestHandler(() => {
+        router.push({ pathname: '/onboarding/capsula', params: { debugChest: '1' } });
+      });
+    }
     void playVoz();
 
     return () => {
