@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.falamigos.app",
-      "buildNumber": "1",
+      "buildNumber": "3",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "O Falamigos usa o microfone para você gravar sua voz durante os exercícios de fala.",
         "NSMotionUsageDescription": "O Falamigos usa o movimento do telefone para um efeito suave de profundidade na tela.",
@@ -76,7 +76,8 @@
           }
         }
       ],
-      "./plugins/withAndroidReleaseSigning.js"
+      "./plugins/withAndroidReleaseSigning.js",
+      "./plugins/withIosBuildNumber.js"
     ]
   }
 }

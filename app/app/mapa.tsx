@@ -4,33 +4,31 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Settings } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OceanBackground } from '@/components/scene/OceanBackground';
-import { ChicoSprite } from '@/components/ChicoSprite';
+import { MundoPersonagem } from '@/components/MundoPersonagem';
 import { SpeechBubble } from '@/components/ui/SpeechBubble';
 import { StarfishStreak } from '@/components/mapa/StarfishStreak';
 import { CaminhoTrilho, NoCompleto, NoFuturo, NoHoje } from '@/components/mapa/Trilho';
 import { gerarTrilho } from '@/components/mapa/trilhoLayout';
 import { colors, fontFamily } from '@/theme/colors';
 import { storage } from '@/lib/storage';
+import { friendsFundoDoMar } from '@/data/friends';
 
-const TOTAL_NOS = 10;
+const TOTAL_NOS = friendsFundoDoMar.length;
 
 export default function MapaScreen() {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const [streak, setStreak] = useState(0);
-  const [nome, setNome] = useState('Liam');
   const [todayIndex, setTodayIndex] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const [s, perfil, sessoes] = await Promise.all([
+        const [s, sessoes] = await Promise.all([
           storage.getStreak(),
-          storage.getPerfil(),
           storage.getSessoesCompletas(),
         ]);
         setStreak(s);
-        setNome(perfil?.nome ?? 'Liam');
         setTodayIndex(Math.min(sessoes, TOTAL_NOS - 1));
       })();
     }, [])
@@ -70,12 +68,21 @@ export default function MapaScreen() {
         <View style={{ position: 'absolute', top: trilhoTop, left: 0, width, height: trilhoHeight }}>
           <CaminhoTrilho pontos={pontos} width={width} height={trilhoHeight} />
           {pontos.map((p, i) => {
-            if (i < todayIndex) return <NoCompleto key={i} pos={p} delay={i * 300} />;
+            const criatura = friendsFundoDoMar[i];
+            if (i < todayIndex) return <NoCompleto key={i} pos={p} delay={i * 300} arte={criatura?.arte} />;
             if (i === todayIndex) return null;
-            return <NoFuturo key={i} pos={p} delay={i * 250} opacidade={Math.max(0.35, 0.65 - (i - todayIndex) * 0.06)} />;
+            return (
+              <NoFuturo
+                key={i}
+                pos={p}
+                delay={i * 250}
+                opacidade={Math.max(0.35, 0.65 - (i - todayIndex) * 0.06)}
+                arte={criatura?.arte}
+              />
+            );
           })}
 
-          <NoHoje pos={noHojePos} onPress={iniciarSessao} />
+          <NoHoje pos={noHojePos} onPress={iniciarSessao} arte={friendsFundoDoMar[todayIndex]?.arte} />
 
           <View
             pointerEvents="none"
@@ -87,14 +94,14 @@ export default function MapaScreen() {
               alignItems: 'center',
             }}
           >
-            <ChicoSprite pose="idle" size={110} />
+            <MundoPersonagem size={130} transparente />
           </View>
 
           <View
             pointerEvents="none"
-            style={{ position: 'absolute', left: noHojePos.x - 90, top: noHojePos.y - 250, width: 180, alignItems: 'center' }}
+            style={{ position: 'absolute', left: noHojePos.x - 90, top: noHojePos.y - 268, width: 180, alignItems: 'center' }}
           >
-            <SpeechBubble>{`Bora, ${nome}?`}</SpeechBubble>
+            <SpeechBubble>Bora, amigo!</SpeechBubble>
           </View>
         </View>
 

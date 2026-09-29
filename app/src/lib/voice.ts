@@ -119,10 +119,24 @@ async function playClip(source: number): Promise<void> {
   clipSound = sound;
 
   await new Promise<void>((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    const timeout = setTimeout(done, 8000);
     sound.setOnPlaybackStatusUpdate((status) => {
-      if (!status.isLoaded) return;
+      if (!status.isLoaded) {
+        if ('error' in status && status.error) {
+          clearTimeout(timeout);
+          done();
+        }
+        return;
+      }
       if (status.didJustFinish) {
-        resolve();
+        clearTimeout(timeout);
+        done();
       }
     });
   });

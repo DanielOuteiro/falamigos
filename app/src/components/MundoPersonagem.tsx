@@ -7,6 +7,8 @@ import { onboardingDraft } from '@/lib/onboardingDraft';
 type Props = {
   size?: number;
   universoId?: string;
+  /** Sem o fundo branco — para o mapa, sobre o oceano. */
+  transparente?: boolean;
 };
 
 /** Vídeos ping-pong por mundo (quando existirem). */
@@ -18,7 +20,7 @@ const videos: Record<string, number> = {
 const CHICO_ASPECT = 592 / 832;
 
 /** Personagem do mundo — vídeo nativo quando houver; senão arte estática. */
-export function MundoPersonagem({ size = 220, universoId }: Props) {
+export function MundoPersonagem({ size = 220, universoId, transparente = false }: Props) {
   const id = universoId ?? onboardingDraft.universo;
   const mundo = universos.find((u) => u.id === id) ?? universos[0];
   const video = videos[mundo.id];
@@ -27,12 +29,12 @@ export function MundoPersonagem({ size = 220, universoId }: Props) {
     const height = size * CHICO_ASPECT;
     return (
       <View
-        style={{ width: size, height, backgroundColor: '#FFFFFF' }}
+        style={{ width: size, height, backgroundColor: transparente ? 'transparent' : '#FFFFFF' }}
         accessibilityLabel={`${mundo.personagem}, mascote do ${mundo.nome}`}
       >
         <Video
           source={video}
-          style={styles.video}
+          style={[styles.video, transparente && { backgroundColor: 'transparent' }]}
           resizeMode={ResizeMode.CONTAIN}
           shouldPlay
           isLooping

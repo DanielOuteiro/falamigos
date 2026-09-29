@@ -80,9 +80,6 @@ export const storage = {
       await setJSON(KEYS.streak, streak);
       await setJSON(KEYS.ultimaSessao, hoje);
     }
-    const sessoes = (await getJSON<number>(KEYS.sessoesCompletas, 0)) + 1;
-    await setJSON(KEYS.sessoesCompletas, sessoes);
-
     return { streak };
   },
 
@@ -101,6 +98,16 @@ export const storage = {
   },
   async getSessoesCompletas(): Promise<number> {
     return getJSON<number>(KEYS.sessoesCompletas, 0);
+  },
+
+  /** Quantas sessões já foram concluídas — desbloqueia friendsFundoDoMar[n - 1]. */
+  async getSessionCount(): Promise<number> {
+    return this.getSessoesCompletas();
+  },
+  async incrementSessionCount(): Promise<number> {
+    const next = (await this.getSessoesCompletas()) + 1;
+    await setJSON(KEYS.sessoesCompletas, next);
+    return next;
   },
 
   async chispaNasceu(): Promise<boolean> {

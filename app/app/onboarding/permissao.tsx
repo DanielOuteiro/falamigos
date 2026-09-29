@@ -124,7 +124,7 @@ export default function PermissaoScreen() {
           >
             <Animated.View style={[styles.cta, pressStyle]}>
               <Mic color="#FFFFFF" size={22} strokeWidth={2.6} />
-              <Text style={styles.ctaLabel}>{negado ? 'Tentar de novo' : 'Permitir microfone'}</Text>
+              <Text style={styles.ctaLabel}>{negado ? 'Tentar de novo' : 'Continuar'}</Text>
             </Animated.View>
           </Pressable>
         </View>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Bau } from '@/components/sessao/Bau';
 import { OvoFragmento } from '@/components/sessao/OvoFragmento';
 import { InvocacaoButton } from '@/components/sessao/InvocacaoButton';
@@ -7,20 +7,23 @@ import { ConfettiBubbles } from '@/components/sessao/ConfettiBubbles';
 import { MundoPersonagem } from '@/components/MundoPersonagem';
 import { SpeechBubble } from '@/components/ui/SpeechBubble';
 import { colors, fontFamily } from '@/theme/colors';
-import { speakChico } from '@/lib/voice';
+import { speakChico, speakModel } from '@/lib/voice';
 import { storage } from '@/lib/storage';
 import type { ChicoPose } from '@/components/ChicoSprite';
+import type { Friend } from '@/data/friends';
 
 type Etapa = 'baú' | 'ovo' | 'invocacao' | 'nasceu';
 
 export function Recompensa({
   fragmentos,
   ovoCompleto,
+  amigo,
   onPoseChange,
   onCompleta,
 }: {
   fragmentos: number;
   ovoCompleto: boolean;
+  amigo?: Friend;
   onPoseChange: (p: ChicoPose) => void;
   onCompleta: () => void;
 }) {
@@ -39,7 +42,11 @@ export function Recompensa({
         await new Promise((r) => setTimeout(r, 900));
         setEtapa('invocacao');
         onPoseChange('talking');
-        await speakChico('chispa');
+        if (amigo) {
+          await speakModel(amigo.nome);
+        } else {
+          await speakChico('chispa');
+        }
         onPoseChange('idle');
       } else {
         await new Promise((r) => setTimeout(r, 1800));
@@ -84,7 +91,9 @@ export function Recompensa({
 
       {etapa === 'invocacao' && (
         <>
-          <SpeechBubble>Chame por ele: CHICO!</SpeechBubble>
+          <SpeechBubble>
+            {amigo ? `Chame por ${amigo.artigo} ${amigo.nome}!` : 'Chame por ele: CHICO!'}
+          </SpeechBubble>
           <OvoFragmento fragmentos={holds + 1} size={150} />
           <InvocacaoButton onHoldValido={onHoldValido} disabled={holds >= 3} />
           <Text style={styles.legenda}>{`Segure e fale — ${holds} de 3`}</Text>
@@ -93,9 +102,17 @@ export function Recompensa({
 
       {etapa === 'nasceu' && (
         <>
-          <SpeechBubble>Ele nasceu! Este é o Chico!</SpeechBubble>
-          <MundoPersonagem size={170} />
-          <Text style={styles.tituloNasceu}>CHICO</Text>
+          <SpeechBubble>
+            {amigo
+              ? `Nasceu! Este é ${amigo.artigo} ${amigo.nome}!`
+              : 'Ele nasceu! Este é o Chico!'}
+          </SpeechBubble>
+          {amigo ? (
+            <Image source={amigo.arte} style={styles.amigoArte} resizeMode="contain" />
+          ) : (
+            <MundoPersonagem size={170} />
+          )}
+          <Text style={styles.tituloNasceu}>{amigo ? amigo.nome.toUpperCase() : 'CHICO'}</Text>
         </>
       )}
     </View>
@@ -106,4 +123,5 @@ const styles = StyleSheet.create({
   wrap: { alignItems: 'center', justifyContent: 'center', gap: 18, flex: 1 },
   legenda: { fontFamily: fontFamily.corpoExtra, color: colors.turquesaClaro, fontSize: 15 },
   tituloNasceu: { fontFamily: fontFamily.titulo, color: colors.estrela, fontSize: 34 },
+  amigoArte: { width: 200, height: 200 },
 });

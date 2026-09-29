@@ -24,8 +24,10 @@ import { gerarParesQualEQual } from '@/data/qualEQualPares';
 import { espiarSubconjunto, confirmarAvancoSubconjunto } from '@/lib/rotacaoDiaria';
 import { FRASES_ECO, type FraseEco } from '@/data/frasesEco';
 import { FRASES_TRAVESSIA, type FraseTravessia } from '@/data/frasesTravessia';
+import { amigoDaSessao, type Friend } from '@/data/friends';
 
-const FRASES_POR_SESSAO = 3;
+const FRASES_ECO_POR_SESSAO = 3;
+const FRASES_TRAVESSIA_POR_SESSAO = 1;
 
 /**
  * 3 blocos, 2 jogos cada, 1 pedaço de ovo por bloco:
@@ -102,6 +104,7 @@ export default function SessaoScreen() {
   const [frasesTravessiaDia, setFrasesTravessiaDia] = useState<FraseTravessia[] | null>(null);
   /** 1ª sessão de todas: a Cápsula do Tempo já foi o cofrinho da voz + tesouro dela — não repete aqui. */
   const [ehPrimeiraSessao, setEhPrimeiraSessao] = useState(false);
+  const [amigoNascendo, setAmigoNascendo] = useState<Friend | null>(null);
   const pares = React.useMemo(() => gerarParesQualEQual(palavras ?? []), [palavras]);
   const errosSessaoRef = React.useRef<Set<string>>(new Set());
   const registrarErro = React.useCallback((wordId: string) => {
@@ -111,17 +114,20 @@ export default function SessaoScreen() {
 
   React.useEffect(() => {
     storage.getPerfil().then((p) => p && setNome(p.nome));
-    storage.getSessoesCompletas().then((n) => setEhPrimeiraSessao(n === 0));
+    storage.getSessoesCompletas().then((n) => {
+      setEhPrimeiraSessao(n === 0);
+      setAmigoNascendo(amigoDaSessao(n + 1));
+    });
     espiarProximasPalavras().then(({ palavras: p, novoIndex }) => {
       rotacaoPendenteRef.current.palavras = novoIndex;
       setPalavras(p);
       setProgPalavra({ atual: 1, total: p.length || MODEL_WORDS.length });
     });
-    espiarSubconjunto('frasesEco', FRASES_ECO, FRASES_POR_SESSAO).then(({ itens, novoIndex }) => {
+    espiarSubconjunto('frasesEco', FRASES_ECO, FRASES_ECO_POR_SESSAO).then(({ itens, novoIndex }) => {
       rotacaoPendenteRef.current.frasesEco = novoIndex;
       setFrasesEcoDia(itens);
     });
-    espiarSubconjunto('frasesTravessia', FRASES_TRAVESSIA, FRASES_POR_SESSAO).then(({ itens, novoIndex }) => {
+    espiarSubconjunto('frasesTravessia', FRASES_TRAVESSIA, FRASES_TRAVESSIA_POR_SESSAO).then(({ itens, novoIndex }) => {
       rotacaoPendenteRef.current.frasesTravessia = novoIndex;
       setFrasesTravessiaDia(itens);
     });
@@ -146,6 +152,8 @@ export default function SessaoScreen() {
    */
   async function aoTerminarUltimoBloco() {
     const r = await storage.adicionarFragmentoOvo();
+    const sessionNum = await storage.incrementSessionCount();
+    setAmigoNascendo(amigoDaSessao(sessionNum));
     const { streak } = await storage.registrarSessaoConcluida();
     await storage.registrarErrosSessao(Array.from(errosSessaoRef.current));
     await Promise.all([
@@ -188,7 +196,7 @@ export default function SessaoScreen() {
       <StatusBar style="dark" />
       <OceanBackground bubbles={7} variant={emRecompensa ? 'premio' : 'fundo'} />
 
-      {/* Na Travessia e no bloco do ovo (recompensa3) o Chico está "dentro do ovo" — só reaparece quando nasce, dentro do próprio Recompensa. */}
+      {/* Na Travessia e no ovo final o herói some — o amigo nasce dentro do Recompensa. */}
       {fase !== 'travessia' && fase !== 'recompensa3' && (
         <SafeAreaView edges={['top']} style={styles.heroSafe} pointerEvents="none">
           <View style={styles.heroZone}>
@@ -285,6 +293,7 @@ export default function SessaoScreen() {
             <Recompensa
               fragmentos={checkpoint.fragmentos}
               ovoCompleto={checkpoint.ovoCompleto}
+              amigo={amigoNascendo ?? undefined}
               onPoseChange={setPose}
               onCompleta={() => avancarPara('fecho')}
             />

@@ -52,8 +52,9 @@ export function QualEQual({
   const alvo = useMemo(() => (par ? getWord(par.certaId) : undefined), [par]);
 
   useEffect(() => {
-    if (!par) {
-      onCompleta();
+    if (!par || !alvo) {
+      if (indice >= pares.length) onCompleta();
+      else setIndice((v) => v + 1);
       return;
     }
     onProgressoPalavra?.(indice + 1, pares.length);
@@ -64,9 +65,13 @@ export function QualEQual({
     let cancelled = false;
     (async () => {
       await new Promise((r) => setTimeout(r, 300));
-      if (cancelled || !alvo) return;
+      if (cancelled) return;
       onPoseChange('talking');
-      await speakModel(alvo.palavra);
+      try {
+        await speakModel(alvo.palavra);
+      } catch {
+        // áudio não pode travar o jogo
+      }
       if (!cancelled) onPoseChange('idle');
     })();
     return () => {
@@ -82,14 +87,18 @@ export function QualEQual({
   }
 
   async function tocarOpcao(slot: 0 | 1) {
-    if (bloqueado || !opcoes[slot]) return;
+    if (bloqueado || !opcoes[slot] || !par) return;
     const opcao = opcoes[slot];
     if (opcao.certa) {
       setBloqueado(true);
       hapticSucesso();
       setAcertoSlot(slot);
       onPoseChange('celebrating');
-      await speakChico('isso');
+      try {
+        await speakChico('isso');
+      } catch {
+        // ignore
+      }
       onEstrela();
       onPoseChange('idle');
       await new Promise((r) => setTimeout(r, 450));
@@ -104,10 +113,13 @@ export function QualEQual({
       setTremendoSlot(slot);
       shakes[slot].trigger();
       setBloqueado(true);
-      await new Promise((r) => setTimeout(r, 300));
-      await repetirAudio();
-      setTremendoSlot(null);
-      setBloqueado(false);
+      try {
+        await new Promise((r) => setTimeout(r, 300));
+        await repetirAudio();
+      } finally {
+        setTremendoSlot(null);
+        setBloqueado(false);
+      }
     }
   }
 

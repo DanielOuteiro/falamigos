@@ -1,46 +1,81 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import Svg, { Circle, Defs, LinearGradient, Path, Polygon, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import { Lock } from 'lucide-react-native';
 import { colors } from '@/theme/colors';
 import { useBob, usePulse, useRingOut } from '@/lib/motion';
 import type { NoTrilho } from './trilhoLayout';
 
-function NoCompleto({ pos, delay }: { pos: NoTrilho; delay: number }) {
+function NoCompleto({ pos, delay, arte }: { pos: NoTrilho; delay: number; arte?: number }) {
   const style = useBob(6500, 6, delay, 3);
   return (
-    <Animated.View style={[styles.noBase, { left: pos.x - 32, top: pos.y - 32 }, style]}>
-      <Svg width={64} height={64} viewBox="0 0 80 80">
-        <Circle cx={40} cy={40} r={34} fill={colors.turquesa} />
-        <Circle cx={40} cy={40} r={34} fill="none" stroke={colors.turquesaSuave} strokeWidth={3} />
-        <Path
-          d="M40,20 l6.4,13.4 14.6,2.1 -10.5,10.3 2.5,14.5 -13,-7 -13,7 2.5,-14.5 -10.5,-10.3 14.6,-2.1 Z"
-          fill={colors.estrela}
-          stroke={colors.estrelaEscura}
-          strokeWidth={2}
-        />
-      </Svg>
+    <Animated.View style={[styles.noBase, { left: pos.x - 36, top: pos.y - 36 }, style]}>
+      {arte ? (
+        <View style={styles.criaturaSlot}>
+          <Image source={arte} style={styles.criaturaArte} resizeMode="contain" />
+        </View>
+      ) : (
+        <Svg width={64} height={64} viewBox="0 0 80 80">
+          <Circle cx={40} cy={40} r={34} fill={colors.turquesa} />
+          <Circle cx={40} cy={40} r={34} fill="none" stroke={colors.turquesaSuave} strokeWidth={3} />
+          <Path
+            d="M40,20 l6.4,13.4 14.6,2.1 -10.5,10.3 2.5,14.5 -13,-7 -13,7 2.5,-14.5 -10.5,-10.3 14.6,-2.1 Z"
+            fill={colors.estrela}
+            stroke={colors.estrelaEscura}
+            strokeWidth={2}
+          />
+        </Svg>
+      )}
     </Animated.View>
   );
 }
 
-function NoFuturo({ pos, delay, opacidade }: { pos: NoTrilho; delay: number; opacidade: number }) {
+function NoFuturo({
+  pos,
+  delay,
+  opacidade,
+  arte,
+}: {
+  pos: NoTrilho;
+  delay: number;
+  opacidade: number;
+  arte?: number;
+}) {
   const style = useBob(8000, 6, delay, 3);
   return (
-    <Animated.View style={[styles.noBase, { left: pos.x - 30, top: pos.y - 30, opacity: opacidade }, style]}>
-      <Svg width={60} height={60} viewBox="0 0 80 80">
-        <Circle cx={40} cy={40} r={33} fill="#0a3d54" />
-        <Circle cx={40} cy={40} r={33} fill="none" stroke={colors.turquesaClaro} strokeWidth={3} opacity={0.5} />
-      </Svg>
+    <Animated.View style={[styles.noBase, { left: pos.x - 36, top: pos.y - 36, opacity: opacidade }, style]}>
+      {arte ? (
+        <View style={styles.criaturaSlotBloqueado}>
+          <Image source={arte} style={styles.criaturaSilhueta} resizeMode="contain" />
+          <Lock color={colors.turquesaClaro} size={16} />
+        </View>
+      ) : (
+        <Svg width={60} height={60} viewBox="0 0 80 80">
+          <Circle cx={40} cy={40} r={33} fill="#0a3d54" />
+          <Circle cx={40} cy={40} r={33} fill="none" stroke={colors.turquesaClaro} strokeWidth={3} opacity={0.5} />
+        </Svg>
+      )}
     </Animated.View>
   );
 }
 
-export function NoHoje({ pos, onPress, size = 172 }: { pos: NoTrilho; onPress: () => void; size?: number }) {
+export function NoHoje({
+  pos,
+  onPress,
+  size = 172,
+  arte,
+}: {
+  pos: NoTrilho;
+  onPress: () => void;
+  size?: number;
+  arte?: number;
+}) {
   const pulse = usePulse(1900, 1, 1.07, 0);
   const ringA = useRingOut(2600, 0);
   const ringB = useRingOut(2600, 1300);
   const half = size / 2;
+  const inner = size * 0.87;
 
   return (
     <View style={[styles.noBase, { left: pos.x - half, top: pos.y - half, width: size, height: size }]}>
@@ -61,18 +96,15 @@ export function NoHoje({ pos, onPress, size = 172 }: { pos: NoTrilho; onPress: (
       </Animated.View>
 
       <Pressable onPress={onPress} style={[StyleSheet.absoluteFill, styles.centro]}>
-        <Animated.View style={pulse}>
-          <Svg width={size * 0.87} height={size * 0.87} viewBox="0 0 150 150">
+        <Animated.View style={[pulse, styles.hojeInner, { width: inner, height: inner }]}>
+          <Svg width={inner} height={inner} viewBox="0 0 150 150" style={StyleSheet.absoluteFill}>
             <Circle cx={75} cy={75} r={70} fill={colors.turquesaClaro} />
             <Circle cx={75} cy={75} r={70} fill="none" stroke={colors.branco} strokeWidth={5} />
             <Circle cx={75} cy={78} r={55} fill={colors.turquesa} />
-            <Path
-              d="M75,36 l12.5,26 28.5,4.2 -20.5,20 4.8,28.3 -25.3,-13.5 -25.3,13.5 4.8,-28.3 -20.5,-20 28.5,-4.2 Z"
-              fill={colors.estrela}
-              stroke={colors.estrelaEscura}
-              strokeWidth={3}
-            />
           </Svg>
+          {arte ? (
+            <Image source={arte} style={styles.hojeSilhueta} resizeMode="contain" />
+          ) : null}
         </Animated.View>
       </Pressable>
     </View>
@@ -100,4 +132,29 @@ export { NoCompleto, NoFuturo };
 const styles = StyleSheet.create({
   noBase: { position: 'absolute' },
   centro: { alignItems: 'center', justifyContent: 'center' },
+  criaturaSlot: {
+    width: 72,
+    height: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  criaturaArte: { width: 72, height: 72 },
+  criaturaSlotBloqueado: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(10,34,49,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(123,230,242,0.3)',
+  },
+  criaturaSilhueta: { width: 52, height: 52, position: 'absolute', opacity: 0.25, tintColor: '#7BE6F2' },
+  hojeInner: { alignItems: 'center', justifyContent: 'center' },
+  hojeSilhueta: {
+    width: '58%',
+    height: '58%',
+    tintColor: '#157A90',
+    opacity: 0.45,
+  },
 });

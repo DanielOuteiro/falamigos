@@ -1,26 +1,26 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ArrowLeft, Lock } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OceanBackground } from '@/components/scene/OceanBackground';
-import { MundoPersonagem } from '@/components/MundoPersonagem';
 import { colors, fontFamily } from '@/theme/colors';
 import { storage } from '@/lib/storage';
 import { speakModel } from '@/lib/voice';
 import { hapticSelecao, hapticLeve } from '@/lib/haptics';
-
-const BLOQUEADAS = ['🦀', '🐡', '🦑', '🐢', '🦈', '🐬', '🪸'];
+import { chicoFundoDoMar, friendsFundoDoMar } from '@/data/friends';
 
 export default function ColecaoScreen() {
   const router = useRouter();
-  const [chispaDesbloqueado, setChispaDesbloqueado] = useState(false);
+  const [sessionCount, setSessionCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
-      storage.chispaNasceu().then(setChispaDesbloqueado);
+      storage.getSessionCount().then(setSessionCount);
     }, [])
   );
+
+  const unlockedFriends = friendsFundoDoMar.slice(0, sessionCount);
 
   return (
     <View style={styles.root}>
@@ -37,30 +37,48 @@ export default function ColecaoScreen() {
         <View style={styles.grid}>
           <Pressable
             style={styles.slot}
-            disabled={!chispaDesbloqueado}
             onPress={() => {
               hapticSelecao();
-              speakModel('Chico');
+              speakModel(chicoFundoDoMar.nome);
             }}
           >
-            {chispaDesbloqueado ? (
-              <MundoPersonagem size={78} />
-            ) : (
-              <View style={styles.bloqueado}>
-                <Lock color={colors.turquesaClaro} size={22} />
-              </View>
-            )}
-            <Text style={styles.nomeCriatura}>{chispaDesbloqueado ? 'Chico' : '???'}</Text>
+            <View style={styles.arteWrap}>
+              <Image source={chicoFundoDoMar.arte} style={styles.arte} resizeMode="contain" />
+            </View>
+            <Text style={styles.nomeCriatura}>{chicoFundoDoMar.nome}</Text>
           </Pressable>
 
-          {BLOQUEADAS.map((_, i) => (
-            <Pressable key={i} style={styles.slot} onPress={hapticLeve}>
-              <View style={styles.bloqueado}>
-                <Lock color={colors.turquesaClaro} size={22} />
-              </View>
-              <Text style={styles.nomeCriatura}>???</Text>
-            </Pressable>
-          ))}
+          {friendsFundoDoMar.map((friend) => {
+            const unlocked = unlockedFriends.some((f) => f.id === friend.id);
+            return (
+              <Pressable
+                key={friend.id}
+                style={styles.slot}
+                onPress={() => {
+                  if (!unlocked) {
+                    hapticLeve();
+                    return;
+                  }
+                  hapticSelecao();
+                  speakModel(friend.nome);
+                }}
+              >
+                {unlocked ? (
+                  <View style={styles.arteWrap}>
+                    <Image source={friend.arte} style={styles.arte} resizeMode="contain" />
+                  </View>
+                ) : (
+                  <View style={styles.bloqueado}>
+                    <Image source={friend.arte} style={styles.silhueta} resizeMode="contain" />
+                    <View style={styles.lockBadge}>
+                      <Lock color={colors.turquesaClaro} size={16} />
+                    </View>
+                  </View>
+                )}
+                <Text style={styles.nomeCriatura}>{unlocked ? friend.nome : '???'}</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </SafeAreaView>
     </View>
@@ -85,6 +103,13 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   slot: { width: 90, height: 100, alignItems: 'center', gap: 6 },
+  arteWrap: {
+    width: 78,
+    height: 78,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arte: { width: 78, height: 78 },
   bloqueado: {
     width: 78,
     height: 78,
@@ -94,6 +119,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'rgba(123,230,242,0.3)',
+    overflow: 'hidden',
   },
+  silhueta: { width: 64, height: 64, opacity: 0.28, tintColor: '#7BE6F2' },
+  lockBadge: { position: 'absolute' },
   nomeCriatura: { fontFamily: fontFamily.corpoSemi, color: colors.turquesaClaro, fontSize: 12 },
 });
