@@ -12,7 +12,6 @@ const KEYS = {
   ultimaSessao: 'falamigos:ultimaSessao',
   sessoesCompletas: 'falamigos:sessoesCompletas',
   ovoFragmentos: 'falamigos:ovoFragmentos',
-  chispaNasceu: 'falamigos:chispaNasceu',
   gravacoes: 'falamigos:gravacoes',
   capsulaDia0: 'falamigos:capsulaDia0',
   onboardingCompleto: 'falamigos:onboardingCompleto',
@@ -33,6 +32,13 @@ export type Gravacao = {
   uri: string;
   criadoEm: number;
 };
+
+/** Data local (YYYY-MM-DD) — `toISOString` é UTC e vira o dia às 21h no Brasil. */
+export function dataLocal(d: Date = new Date()): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${dia}`;
+}
 
 async function getJSON<T>(key: string, fallback: T): Promise<T> {
   try {
@@ -71,11 +77,12 @@ export const storage = {
   },
   /** Chamado uma vez, ao fim de toda a sessão do dia (streak + contagem do trilho). */
   async registrarSessaoConcluida(): Promise<{ streak: number }> {
-    const hoje = new Date().toISOString().slice(0, 10);
+    const agora = new Date();
+    const hoje = dataLocal(agora);
     const ultima = await this.getUltimaSessao();
     let streak = await this.getStreak();
     if (ultima !== hoje) {
-      const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const ontem = dataLocal(new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1));
       streak = ultima === ontem ? streak + 1 : 1;
       await setJSON(KEYS.streak, streak);
       await setJSON(KEYS.ultimaSessao, hoje);
@@ -108,13 +115,6 @@ export const storage = {
     const next = (await this.getSessoesCompletas()) + 1;
     await setJSON(KEYS.sessoesCompletas, next);
     return next;
-  },
-
-  async chispaNasceu(): Promise<boolean> {
-    return getJSON<boolean>(KEYS.chispaNasceu, false);
-  },
-  async setChispaNasceu(v: boolean): Promise<void> {
-    await setJSON(KEYS.chispaNasceu, v);
   },
 
   async getGravacoes(): Promise<Gravacao[]> {

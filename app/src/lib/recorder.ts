@@ -95,33 +95,55 @@ export async function saveRecordingToFile(tempUri: string, wordId: string): Prom
   return destination.uri;
 }
 
-export async function listSavedRecordings(): Promise<string[]> {
-  ensureRecsDir();
-  return recsDir
-    .list()
-    .filter((entry): entry is File => entry instanceof File)
-    .map((f) => f.uri);
+let currentSound: Audio.Sound | null = null;
+let resolveCurrent: (() => void) | null = null;
+
+export async function stopPlayback(): Promise<void> {
+  const sound = currentSound;
+  currentSound = null;
+  resolveCurrent?.();
+  resolveCurrent = null;
+  if (!sound) return;
+  try {
+    await sound.stopAsync();
+    await sound.unloadAsync();
+  } catch {
+    // ignore
+  }
 }
 
-let currentSound: Audio.Sound | null = null;
-
-export async function playFile(uri: string): Promise<void> {
-  if (currentSound) {
-    try {
-      await currentSound.unloadAsync();
-    } catch {
-      // ignore
-    }
-    currentSound = null;
+/** Toca a gravação da criança. Resolve sempre — no fim, em erro, ou ao fim de `maxMs`. */
+export async function playFile(uri: string, maxMs = 15000): Promise<void> {
+  await stopPlayback();
+  let sound: Audio.Sound;
+  try {
+    await releaseRecordingMode();
+    ({ sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true }));
+  } catch {
+    return;
   }
-  const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
   currentSound = sound;
-  return new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolveCurrent = null;
+      resolve();
+    };
+    resolveCurrent = done;
+    const timeout = setTimeout(done, maxMs);
     sound.setOnPlaybackStatusUpdate((status) => {
-      if ('didJustFinish' in status && status.didJustFinish) {
-        sound.unloadAsync().catch(() => {});
-        resolve();
+      if (!status.isLoaded) {
+        if ('error' in status && status.error) done();
+        return;
       }
+      if (status.didJustFinish) done();
     });
   });
+  if (currentSound === sound) {
+    currentSound = null;
+    sound.unloadAsync().catch(() => {});
+  }
 }

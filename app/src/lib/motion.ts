@@ -3,6 +3,7 @@ import {
   Easing,
   useAnimatedStyle,
   useDerivedValue,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -13,7 +14,9 @@ import {
 /** Flutuação suave dessincronizada (bobA/bobB/bobC do protótipo). */
 export function useBob(durationMs = 4000, amplitude = 8, delayMs = 0, rotateDeg = 2) {
   const t = useSharedValue(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     t.value = withDelay(
       delayMs,
       withRepeat(withTiming(1, { duration: durationMs / 2, easing: Easing.inOut(Easing.sin) }), -1, true)
@@ -30,7 +33,9 @@ export function useBob(durationMs = 4000, amplitude = 8, delayMs = 0, rotateDeg 
 /** Balanço tipo alga (sway). */
 export function useSway(durationMs = 4000, degrees = 3, delayMs = 0) {
   const t = useSharedValue(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     t.value = withDelay(
       delayMs,
       withRepeat(withTiming(1, { duration: durationMs / 2, easing: Easing.inOut(Easing.sin) }), -1, true)
@@ -44,7 +49,9 @@ export function useSway(durationMs = 4000, degrees = 3, delayMs = 0) {
 /** Pulso de escala (todayPulse / haloPulse). */
 export function usePulse(durationMs = 1900, from = 1, to = 1.07, delayMs = 0) {
   const t = useSharedValue(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     t.value = withDelay(
       delayMs,
       withRepeat(withTiming(1, { duration: durationMs / 2, easing: Easing.inOut(Easing.ease) }), -1, true)
@@ -65,7 +72,9 @@ export function useRingOut(
   const toScale = opts?.toScale ?? 1.5;
   const fromOpacity = opts?.fromOpacity ?? 0.75;
   const t = useSharedValue(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     t.value = withDelay(delayMs, withRepeat(withTiming(1, { duration: durationMs, easing: Easing.out(Easing.ease) }), -1, false));
   }, []);
   return useAnimatedStyle(() => ({
@@ -77,7 +86,9 @@ export function useRingOut(
 /** Brilho pulsante (glow) para pontos com destaque. */
 export function useGlow(durationMs = 2000, delayMs = 0) {
   const t = useSharedValue(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     t.value = withDelay(
       delayMs,
       withRepeat(withTiming(1, { duration: durationMs / 2, easing: Easing.inOut(Easing.sin) }), -1, true)
@@ -92,7 +103,9 @@ export function useGlow(durationMs = 2000, delayMs = 0) {
 /** Cintilar de estrelinha (twinkle). */
 export function useTwinkle(durationMs = 2600, delayMs = 0) {
   const t = useSharedValue(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     t.value = withDelay(
       delayMs,
       withRepeat(withTiming(1, { duration: durationMs / 2, easing: Easing.inOut(Easing.sin) }), -1, true)
@@ -107,7 +120,9 @@ export function useTwinkle(durationMs = 2600, delayMs = 0) {
 /** Tentáculo balançando com leve translação (tentacle). */
 export function useTentacle(durationMs = 4600, delayMs = 0, degrees = 3, rise = 5) {
   const t = useSharedValue(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     t.value = withDelay(
       delayMs,
       withRepeat(withTiming(1, { duration: durationMs / 2, easing: Easing.inOut(Easing.sin) }), -1, true)
@@ -124,7 +139,9 @@ export function useTentacle(durationMs = 4600, delayMs = 0, degrees = 3, rise = 
 /** Igual a useSway, mas devolve um número em graus (para props SVG `rotation`). */
 export function useRotationLoop(durationMs = 4600, delayMs = 0, degrees = 3) {
   const t = useSharedValue(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     t.value = withDelay(
       delayMs,
       withRepeat(withTiming(1, { duration: durationMs / 2, easing: Easing.inOut(Easing.sin) }), -1, true)
@@ -136,7 +153,9 @@ export function useRotationLoop(durationMs = 4600, delayMs = 0, degrees = 3) {
 /** Confete/bolha subindo e sumindo, para telas de conquista. */
 export function useRise(durationMs = 9000, delayMs = 0, distance = 500) {
   const t = useSharedValue(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
+    if (reduced) return;
     t.value = withDelay(delayMs, withRepeat(withTiming(1, { duration: durationMs, easing: Easing.linear }), -1, false));
   }, []);
   return useAnimatedStyle(() => ({

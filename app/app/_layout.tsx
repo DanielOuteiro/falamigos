@@ -41,7 +41,9 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.fundo },
           animation: 'fade',
         }}
-      />
+      >
+        <Stack.Screen name="sessao" options={{ gestureEnabled: false }} />
+      </Stack>
     </GestureHandlerRootView>
   );
 }

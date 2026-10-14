@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import Svg, { Circle, Ellipse } from 'react-native-svg';
 import { colors, fontFamily } from '@/theme/colors';
@@ -16,9 +16,11 @@ type Props = {
   falandoIndex?: number | null;
 };
 
-const BASE_SIZE = 60;
+const MAX_SIZE = 60;
+const GAP = 12;
 
 function Bolhinha({
+  size,
   texto,
   alvo,
   falando,
@@ -27,6 +29,7 @@ function Bolhinha({
   tremorStyle,
   acerto,
 }: {
+  size: number;
   texto: string;
   alvo: boolean;
   falando: boolean;
@@ -46,17 +49,23 @@ function Bolhinha({
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
-    <Wrapper onPress={onPress} hitSlop={6}>
+    <Wrapper
+      onPress={onPress}
+      hitSlop={6}
+      accessible
+      accessibilityRole={onPress ? 'button' : 'text'}
+      accessibilityLabel={texto}
+    >
       <Animated.View style={tremendo ? tremorStyle : undefined}>
-        <Animated.View style={[{ width: BASE_SIZE, height: BASE_SIZE }, scaleStyle]}>
+        <Animated.View style={[{ width: size, height: size }, scaleStyle]}>
           {(dourada || falando) && (
             <Animated.View style={[StyleSheet.absoluteFill, glow]} pointerEvents="none">
-              <Svg width={BASE_SIZE} height={BASE_SIZE} viewBox="0 0 80 80">
+              <Svg width={size} height={size} viewBox="0 0 80 80">
                 <Circle cx={40} cy={40} r={38} fill={colors.estrela} opacity={0.4} />
               </Svg>
             </Animated.View>
           )}
-          <Svg width={BASE_SIZE} height={BASE_SIZE} viewBox="0 0 80 80" style={StyleSheet.absoluteFill}>
+          <Svg width={size} height={size} viewBox="0 0 80 80" style={StyleSheet.absoluteFill}>
             <Circle cx={40} cy={40} r={32} fill={dourada ? colors.estrela : colors.algaMedia} />
             <Circle
               cx={40}
@@ -70,7 +79,7 @@ function Bolhinha({
             <Ellipse cx={29} cy={27} rx={9} ry={6} fill="#FFFFFF" opacity={0.35} rotation={-30} originX={29} originY={27} />
           </Svg>
           <View style={styles.center} pointerEvents="none">
-            <Text style={[styles.texto, { fontSize: 17, color: dourada ? colors.fundo : colors.branco }]}>{texto}</Text>
+            <Text style={[styles.texto, { fontSize: Math.round(size * 0.28), color: dourada ? colors.fundo : colors.branco }]}>{texto}</Text>
           </View>
         </Animated.View>
       </Animated.View>
@@ -88,11 +97,15 @@ export function SilabaRow({
   acertoIndex,
   falandoIndex,
 }: Props) {
+  const { width } = useWindowDimensions();
+  const n = Math.max(1, silabas.length);
+  const size = Math.min(MAX_SIZE, Math.floor((width - 48 - GAP * (n - 1)) / n));
   return (
     <View style={styles.row}>
       {silabas.map((s, i) => (
         <Bolhinha
           key={i}
+          size={size}
           texto={s}
           alvo={mostrarAlvo && i === alvo}
           onPress={onPressSilaba ? () => onPressSilaba(i) : undefined}
@@ -107,7 +120,7 @@ export function SilabaRow({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: GAP },
   center: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   texto: { fontFamily: fontFamily.titulo },
 });

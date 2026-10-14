@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { WordArt, getWord } from '@/components/WordArt';
 import { fontFamily } from '@/theme/colors';
@@ -12,6 +12,8 @@ import type { ChicoPose } from '@/components/ChicoSprite';
 
 const repeatAudioSource = require('../../../assets/ui/btn-repetir-audio.png');
 const REPEAT_BTN = 64;
+const CARD_MAX = 140;
+const CARD_GAP = 22;
 
 type Opcao = { wordId: string; certa: boolean };
 
@@ -43,6 +45,7 @@ export function QualEQual({
   const [tremendoSlot, setTremendoSlot] = useState<0 | 1 | null>(null);
   const [acertoSlot, setAcertoSlot] = useState<0 | 1 | null>(null);
   const [bloqueado, setBloqueado] = useState(false);
+  const { width } = useWindowDimensions();
 
   const shakeA = useShake();
   const shakeB = useShake();
@@ -125,11 +128,13 @@ export function QualEQual({
 
   if (!par || !alvo) return null;
 
+  const cardSize = Math.min(CARD_MAX, Math.floor((width - 40 - CARD_GAP) / 2));
+
   return (
     <View style={styles.wrap}>
       <View style={styles.bubble}>
         <Text style={styles.bubbleEyebrow}>Qual é qual?</Text>
-        <Text style={styles.bubbleText}>Toca na imagem certa!</Text>
+        <Text style={styles.bubbleText}>Toque na imagem certa!</Text>
       </View>
 
       <View style={styles.opcoesRow}>
@@ -137,6 +142,7 @@ export function QualEQual({
           <OpcaoCard
             key={`${par.id}_${slot}`}
             wordId={opcao.wordId}
+            size={cardSize}
             onPress={() => tocarOpcao(slot as 0 | 1)}
             tremendo={tremendoSlot === slot}
             tremorStyle={shakes[slot].style}
@@ -152,12 +158,14 @@ export function QualEQual({
 
 function OpcaoCard({
   wordId,
+  size,
   onPress,
   tremendo,
   tremorStyle,
   acerto,
 }: {
   wordId: string;
+  size: number;
   onPress: () => void;
   tremendo?: boolean;
   tremorStyle?: any;
@@ -171,6 +179,7 @@ function OpcaoCard({
     <Animated.View style={tremendo ? tremorStyle : undefined}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={getWord(wordId)?.palavra}
         onPressIn={() => {
           scale.value = withSpring(0.94, { damping: 14 });
         }}
@@ -179,11 +188,13 @@ function OpcaoCard({
         }}
         onPress={onPress}
       >
-        <Animated.View style={[styles.opcaoCard, acerto && styles.opcaoCardAcerto, pressStyle]}>
+        <Animated.View
+          style={[styles.opcaoCard, { width: size, height: size }, acerto && styles.opcaoCardAcerto, pressStyle]}
+        >
           {acerto && (
             <Animated.View style={[styles.opcaoGlow, glow]} pointerEvents="none" />
           )}
-          <WordArt wordId={wordId} size={100} />
+          <WordArt wordId={wordId} size={Math.round(size * 0.72)} />
         </Animated.View>
       </Pressable>
     </Animated.View>
@@ -259,12 +270,10 @@ const styles = StyleSheet.create({
   },
   opcoesRow: {
     flexDirection: 'row',
-    gap: 22,
+    gap: CARD_GAP,
     justifyContent: 'center',
   },
   opcaoCard: {
-    width: 140,
-    height: 140,
     borderRadius: 28,
     backgroundColor: worldBrand.balão,
     alignItems: 'center',

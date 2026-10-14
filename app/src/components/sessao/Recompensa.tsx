@@ -1,58 +1,68 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { Bau } from '@/components/sessao/Bau';
 import { OvoFragmento } from '@/components/sessao/OvoFragmento';
 import { InvocacaoButton } from '@/components/sessao/InvocacaoButton';
 import { ConfettiBubbles } from '@/components/sessao/ConfettiBubbles';
-import { MundoPersonagem } from '@/components/MundoPersonagem';
 import { SpeechBubble } from '@/components/ui/SpeechBubble';
 import { colors, fontFamily } from '@/theme/colors';
-import { speakChico, speakModel } from '@/lib/voice';
+import { speakChico, speakModel, stopVoice } from '@/lib/voice';
 import { storage } from '@/lib/storage';
 import type { ChicoPose } from '@/components/ChicoSprite';
 import type { Friend } from '@/data/friends';
 
-type Etapa = 'baú' | 'ovo' | 'invocacao' | 'nasceu';
+type Etapa = 'baú' | 'ovo' | 'completo' | 'invocacao' | 'nasceu';
 
 export function Recompensa({
   fragmentos,
   ovoCompleto,
   amigo,
+  mundoCompleto = false,
   onPoseChange,
   onCompleta,
 }: {
   fragmentos: number;
   ovoCompleto: boolean;
   amigo?: Friend;
+  /** Todos os amigos do mundo já nasceram — baú abre, mas não há ovo. */
+  mundoCompleto?: boolean;
   onPoseChange: (p: ChicoPose) => void;
   onCompleta: () => void;
 }) {
   const [etapa, setEtapa] = useState<Etapa>('baú');
   const [holds, setHolds] = useState(0);
+  const cancelledRef = useRef(false);
+  const vaiNascer = ovoCompleto && !!amigo;
 
   useEffect(() => {
+    cancelledRef.current = false;
+    const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
     (async () => {
-      await new Promise((r) => setTimeout(r, 500));
-      setEtapa('ovo');
+      await esperar(500);
+      if (cancelledRef.current) return;
+      setEtapa(mundoCompleto ? 'completo' : 'ovo');
       onPoseChange('celebrating');
       await speakChico('demais');
+      if (cancelledRef.current) return;
       onPoseChange('idle');
 
-      if (ovoCompleto) {
-        await new Promise((r) => setTimeout(r, 900));
+      if (vaiNascer && amigo) {
+        await esperar(900);
+        if (cancelledRef.current) return;
         setEtapa('invocacao');
         onPoseChange('talking');
-        if (amigo) {
-          await speakModel(amigo.nome);
-        } else {
-          await speakChico('chispa');
-        }
+        await speakModel(amigo.nome);
+        if (cancelledRef.current) return;
         onPoseChange('idle');
       } else {
-        await new Promise((r) => setTimeout(r, 1800));
-        onCompleta();
+        await esperar(1800);
+        if (!cancelledRef.current) onCompleta();
       }
     })();
+    return () => {
+      cancelledRef.current = true;
+      void stopVoice();
+    };
   }, []);
 
   async function onHoldValido() {
@@ -62,10 +72,10 @@ export function Recompensa({
       onPoseChange('celebrating');
       await speakChico('nasceu');
       await storage.resetOvo();
-      await storage.setChispaNasceu(true);
+      if (cancelledRef.current) return;
       setEtapa('nasceu');
       await new Promise((r) => setTimeout(r, 2600));
-      onCompleta();
+      if (!cancelledRef.current) onCompleta();
     }
   }
 
@@ -89,30 +99,32 @@ export function Recompensa({
         </>
       )}
 
-      {etapa === 'invocacao' && (
+      {etapa === 'completo' && (
         <>
-          <SpeechBubble>
-            {amigo ? `Chame por ${amigo.artigo} ${amigo.nome}!` : 'Chame por ele: CHICO!'}
-          </SpeechBubble>
+          <SpeechBubble>Você é demais! Todos os amigos do Chico já estão aqui!</SpeechBubble>
+          <Bau aberto size={190} />
+        </>
+      )}
+
+      {etapa === 'invocacao' && amigo && (
+        <>
+          <SpeechBubble>{`Chame por ${amigo.artigo} ${amigo.nome}!`}</SpeechBubble>
           <OvoFragmento fragmentos={holds + 1} size={150} />
           <InvocacaoButton onHoldValido={onHoldValido} disabled={holds >= 3} />
           <Text style={styles.legenda}>{`Segure e fale — ${holds} de 3`}</Text>
         </>
       )}
 
-      {etapa === 'nasceu' && (
+      {etapa === 'nasceu' && amigo && (
         <>
-          <SpeechBubble>
-            {amigo
-              ? `Nasceu! Este é ${amigo.artigo} ${amigo.nome}!`
-              : 'Ele nasceu! Este é o Chico!'}
-          </SpeechBubble>
-          {amigo ? (
-            <Image source={amigo.arte} style={styles.amigoArte} resizeMode="contain" />
-          ) : (
-            <MundoPersonagem size={170} />
-          )}
-          <Text style={styles.tituloNasceu}>{amigo ? amigo.nome.toUpperCase() : 'CHICO'}</Text>
+          <SpeechBubble>{`Nasceu! ${amigo.artigo === 'a' ? 'Esta' : 'Este'} é ${amigo.artigo} ${amigo.nome}!`}</SpeechBubble>
+          <Image
+            source={amigo.arte}
+            style={styles.amigoArte}
+            resizeMode="contain"
+            accessibilityLabel={amigo.nome}
+          />
+          <Text style={styles.tituloNasceu}>{amigo.nome.toUpperCase()}</Text>
         </>
       )}
     </View>

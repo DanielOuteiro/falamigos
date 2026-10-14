@@ -7,10 +7,14 @@ import { colors } from '@/theme/colors';
 import { useBob, usePulse, useRingOut } from '@/lib/motion';
 import type { NoTrilho } from './trilhoLayout';
 
-function NoCompleto({ pos, delay, arte }: { pos: NoTrilho; delay: number; arte?: number }) {
+function NoCompleto({ pos, delay, arte, nome }: { pos: NoTrilho; delay: number; arte?: number; nome?: string }) {
   const style = useBob(6500, 6, delay, 3);
   return (
-    <Animated.View style={[styles.noBase, { left: pos.x - 36, top: pos.y - 36 }, style]}>
+    <Animated.View
+      style={[styles.noBase, { left: pos.x - 36, top: pos.y - 36 }, style]}
+      accessible={!!nome}
+      accessibilityLabel={nome}
+    >
       {arte ? (
         <View style={styles.criaturaSlot}>
           <Image source={arte} style={styles.criaturaArte} resizeMode="contain" />
@@ -65,11 +69,14 @@ export function NoHoje({
   onPress,
   size = 172,
   arte,
+  desbloqueado = false,
 }: {
   pos: NoTrilho;
   onPress: () => void;
   size?: number;
   arte?: number;
+  /** Mostra a arte a cores em vez da silhueta (mundo completo). */
+  desbloqueado?: boolean;
 }) {
   const pulse = usePulse(1900, 1, 1.07, 0);
   const ringA = useRingOut(2600, 0);
@@ -95,7 +102,12 @@ export function NoHoje({
         </Svg>
       </Animated.View>
 
-      <Pressable onPress={onPress} style={[StyleSheet.absoluteFill, styles.centro]}>
+      <Pressable
+        onPress={onPress}
+        style={[StyleSheet.absoluteFill, styles.centro]}
+        accessibilityRole="button"
+        accessibilityLabel="Começar a sessão de hoje"
+      >
         <Animated.View style={[pulse, styles.hojeInner, { width: inner, height: inner }]}>
           <Svg width={inner} height={inner} viewBox="0 0 150 150" style={StyleSheet.absoluteFill}>
             <Circle cx={75} cy={75} r={70} fill={colors.turquesaClaro} />
@@ -103,7 +115,11 @@ export function NoHoje({
             <Circle cx={75} cy={78} r={55} fill={colors.turquesa} />
           </Svg>
           {arte ? (
-            <Image source={arte} style={styles.hojeSilhueta} resizeMode="contain" />
+            <Image
+              source={arte}
+              style={desbloqueado ? styles.hojeArte : styles.hojeSilhueta}
+              resizeMode="contain"
+            />
           ) : null}
         </Animated.View>
       </Pressable>
@@ -157,4 +173,5 @@ const styles = StyleSheet.create({
     tintColor: '#157A90',
     opacity: 0.45,
   },
+  hojeArte: { width: '70%', height: '70%' },
 });

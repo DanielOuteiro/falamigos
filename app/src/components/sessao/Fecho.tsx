@@ -20,13 +20,18 @@ export function Fecho({
   onFinalizar: () => void;
 }) {
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       onPoseChange('talking');
       await speakChico('tchau', { nome });
+      if (cancelled) return;
       onPoseChange('idle');
       await new Promise((r) => setTimeout(r, 1400));
-      onFinalizar();
+      if (!cancelled) onFinalizar();
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

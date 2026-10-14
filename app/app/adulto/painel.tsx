@@ -62,7 +62,7 @@ export default function PainelAdulto() {
   function confirmarReset() {
     Alert.alert(
       'Recomeçar do zero?',
-      'Isso apaga o perfil, o streak, o ovo, a cápsula do tempo e todas as gravações salvas neste telemóvel. Não pode ser desfeito.',
+      'Isso apaga o perfil, o streak, o ovo, a cápsula do tempo e todas as gravações salvas neste celular. Não pode ser desfeito.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -70,6 +70,7 @@ export default function PainelAdulto() {
           style: 'destructive',
           onPress: async () => {
             await storage.resetTudo();
+            if (router.canDismiss()) router.dismissAll();
             router.replace('/');
           },
         },
@@ -81,7 +82,12 @@ export default function PainelAdulto() {
     <View style={styles.root}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.replace('/mapa')} hitSlop={10}>
+          <Pressable
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar"
+          >
             <ArrowLeft color={colors.areia} size={24} />
           </Pressable>
           <Text style={styles.titulo}>Modo Adulto</Text>

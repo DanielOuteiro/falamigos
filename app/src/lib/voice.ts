@@ -1,6 +1,7 @@
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
 import { chicoLines, ChicoLineId } from '@/data/chico';
+import { stopPlayback } from '@/lib/recorder';
 
 /**
  * Clips gravados (ElevenLabs). Se existir, usam-se no lugar do TTS.
@@ -94,6 +95,7 @@ function pickVariantClip(lineId: ChicoLineId, clips: number[]): number {
 }
 
 let clipSound: Audio.Sound | null = null;
+let resolveClip: (() => void) | null = null;
 
 async function ensurePlaybackMode() {
   await Audio.setAudioModeAsync({
@@ -105,14 +107,15 @@ async function ensurePlaybackMode() {
 async function playClip(source: number): Promise<void> {
   await ensurePlaybackMode();
   Speech.stop();
-  if (clipSound) {
+  const anterior = clipSound;
+  clipSound = null;
+  if (anterior) {
     try {
-      await clipSound.stopAsync();
-      await clipSound.unloadAsync();
+      await anterior.stopAsync();
+      await anterior.unloadAsync();
     } catch {
       // ignore
     }
-    clipSound = null;
   }
 
   const { sound } = await Audio.Sound.createAsync(source, { shouldPlay: true });
@@ -126,6 +129,10 @@ async function playClip(source: number): Promise<void> {
       resolve();
     };
     const timeout = setTimeout(done, 8000);
+    resolveClip = () => {
+      clearTimeout(timeout);
+      done();
+    };
     sound.setOnPlaybackStatusUpdate((status) => {
       if (!status.isLoaded) {
         if ('error' in status && status.error) {
@@ -164,14 +171,18 @@ function speakAsync(text: string, options: Speech.SpeechOptions): Promise<void> 
 
 export async function stopVoice() {
   Speech.stop();
-  if (!clipSound) return;
+  void stopPlayback();
+  resolveClip?.();
+  resolveClip = null;
+  const sound = clipSound;
+  clipSound = null;
+  if (!sound) return;
   try {
-    await clipSound.stopAsync();
-    await clipSound.unloadAsync();
+    await sound.stopAsync();
+    await sound.unloadAsync();
   } catch {
     // ignore
   }
-  clipSound = null;
 }
 
 /** Voz-modelo: fala a palavra inteira (clip se existir, senão TTS). */

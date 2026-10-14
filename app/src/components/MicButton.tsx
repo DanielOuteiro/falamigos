@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -21,6 +21,7 @@ import {
   playFile,
   saveRecordingToFile,
   startRecording,
+  stopPlayback,
   stopRecording,
   type RecordingHandle,
 } from '@/lib/recorder';
@@ -93,8 +94,27 @@ export function MicButton({
   useEffect(() => {
     return () => {
       if (autoStopRef.current) clearTimeout(autoStopRef.current);
+      const handle = handleRef.current;
+      handleRef.current = null;
+      if (handle) {
+        void stopRecording(handle).then((r) => {
+          if (r?.uri) void discardRecording(r.uri);
+        });
+      }
+      void stopPlayback();
     };
   }, []);
+
+  function avisarPermissaoNegada() {
+    Alert.alert(
+      'Microfone desligado',
+      'Para o Chico ouvir a voz da criança, um adulto precisa permitir o microfone nas configurações.',
+      [
+        { text: 'Agora não', style: 'cancel' },
+        { text: 'Abrir configurações', onPress: () => void Linking.openSettings() },
+      ]
+    );
+  }
 
   function startFakePulse() {
     usingFakePulse.current = true;
@@ -111,6 +131,7 @@ export function MicButton({
     if (!granted) {
       setBusy(false);
       onPoseChange?.('idle');
+      avisarPermissaoNegada();
       return;
     }
     setState('recording');
@@ -119,15 +140,24 @@ export function MicButton({
     level.value = 0;
 
     let gotRealMetering = false;
-    const handle = await startRecording((status: any) => {
-      if (usingFakePulse.current) return;
-      if (typeof status?.metering === 'number') {
-        gotRealMetering = true;
-        level.value = withTiming(normalizeMetering(status.metering), { duration: 90 });
-      } else if (!gotRealMetering) {
-        startFakePulse();
-      }
-    });
+    let handle: RecordingHandle;
+    try {
+      handle = await startRecording((status: any) => {
+        if (usingFakePulse.current) return;
+        if (typeof status?.metering === 'number') {
+          gotRealMetering = true;
+          level.value = withTiming(normalizeMetering(status.metering), { duration: 90 });
+        } else if (!gotRealMetering) {
+          startFakePulse();
+        }
+      });
+    } catch {
+      level.value = 0;
+      setState('idle');
+      setBusy(false);
+      onPoseChange?.('idle');
+      return;
+    }
     handleRef.current = handle;
     setBusy(false);
 
@@ -302,13 +332,15 @@ export function MicButton({
             void handlePressOut();
           }}
           style={{ width: size, height }}
+          accessibilityRole="button"
+          accessibilityLabel={`Segure e fale: ${palavra}`}
+          accessibilityState={{ busy: recording, disabled: showActions || busy || state === 'captured' }}
         >
           <Animated.View style={[{ width: size, height }, pressStyle]}>
             <Image
               source={clamSource}
               style={[styles.clam, recording && styles.clamRecording]}
               resizeMode="contain"
-              accessibilityLabel="Concha com pérola — segura e fala"
             />
             <View style={styles.micIcon} pointerEvents="none">
               <Mic

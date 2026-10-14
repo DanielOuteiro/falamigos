@@ -24,13 +24,18 @@ export function Aquecimento({
   const [falandoIndex, setFalandoIndex] = useState<number | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     onProgressoPalavra?.(1, words.length);
     (async () => {
       onPoseChange('talking');
       await speakChico('ouvidos');
+      if (cancelled) return;
       onPoseChange('idle');
       setIndice(0);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

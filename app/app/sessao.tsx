@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, BackHandler, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { OceanBackground } from '@/components/scene/OceanBackground';
@@ -16,15 +17,16 @@ import { Recompensa } from '@/components/sessao/Recompensa';
 import { Fecho } from '@/components/sessao/Fecho';
 import { CofreFechando } from '@/components/onboarding/CofreFechando';
 import type { ChicoPose } from '@/components/ChicoSprite';
-import { WORLD_INSTRUCTION_TOP, WORLD_FLOW_TOP } from '@/theme/worldBrand';
+import { WORLD_INSTRUCTION_TOP, WORLD_FLOW_TOP, worldBrand } from '@/theme/worldBrand';
 import { storage } from '@/lib/storage';
+import { stopVoice } from '@/lib/voice';
 import { MODEL_WORDS, type Word } from '@/data/modelWords';
 import { espiarProximasPalavras, confirmarAvancoPalavras } from '@/lib/palavrasDoDia';
 import { gerarParesQualEQual } from '@/data/qualEQualPares';
 import { espiarSubconjunto, confirmarAvancoSubconjunto } from '@/lib/rotacaoDiaria';
 import { FRASES_ECO, type FraseEco } from '@/data/frasesEco';
 import { FRASES_TRAVESSIA, type FraseTravessia } from '@/data/frasesTravessia';
-import { amigoDaSessao, type Friend } from '@/data/friends';
+import { amigoDaSessao, mundoCompleto, type Friend } from '@/data/friends';
 
 const FRASES_ECO_POR_SESSAO = 3;
 const FRASES_TRAVESSIA_POR_SESSAO = 1;
@@ -105,6 +107,7 @@ export default function SessaoScreen() {
   /** 1ª sessão de todas: a Cápsula do Tempo já foi o cofrinho da voz + tesouro dela — não repete aqui. */
   const [ehPrimeiraSessao, setEhPrimeiraSessao] = useState(false);
   const [amigoNascendo, setAmigoNascendo] = useState<Friend | null>(null);
+  const [mundoJaCompleto, setMundoJaCompleto] = useState(false);
   const pares = React.useMemo(() => gerarParesQualEQual(palavras ?? []), [palavras]);
   const errosSessaoRef = React.useRef<Set<string>>(new Set());
   const registrarErro = React.useCallback((wordId: string) => {
@@ -112,10 +115,44 @@ export default function SessaoScreen() {
   }, []);
   const rotacaoPendenteRef = React.useRef({ palavras: 0, frasesEco: 0, frasesTravessia: 0 });
 
+  const sairRef = React.useRef(false);
+  const finalizandoRef = React.useRef(false);
+  const irParaMapa = React.useCallback(() => {
+    if (router.canDismiss()) router.dismissAll();
+    router.replace('/mapa');
+  }, [router]);
+
+  const sair = React.useCallback(() => {
+    sairRef.current = true;
+    void stopVoice();
+    irParaMapa();
+  }, [irParaMapa]);
+
+  const confirmarSair = React.useCallback(() => {
+    Alert.alert('Sair da sessão?', 'O progresso desta sessão não será salvo.', [
+      { text: 'Continuar jogando', style: 'cancel' },
+      { text: 'Sair', style: 'destructive', onPress: sair },
+    ]);
+  }, [sair]);
+
   React.useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (fase === 'fecho') return false;
+      confirmarSair();
+      return true;
+    });
+    return () => sub.remove();
+  }, [fase, confirmarSair]);
+
+  React.useEffect(() => () => void stopVoice(), []);
+
+  React.useEffect(() => {
+    // Pedaços de ovo de uma sessão abandonada não podem chocar antes do 3º bloco.
+    if (!RECOMPENSA_DEV_FRAGMENTOS[faseDev]) void storage.resetOvo();
     storage.getPerfil().then((p) => p && setNome(p.nome));
     storage.getSessoesCompletas().then((n) => {
       setEhPrimeiraSessao(n === 0);
+      setMundoJaCompleto(mundoCompleto(n));
       setAmigoNascendo(amigoDaSessao(n + 1));
     });
     espiarProximasPalavras().then(({ palavras: p, novoIndex }) => {
@@ -141,6 +178,7 @@ export default function SessaoScreen() {
   /** Fim de bloco — ganha 1 pedaço de ovo, sem tocar no streak/trilho do dia. */
   async function aoTerminarBloco(proxima: 'recompensa1' | 'recompensa2' | 'recompensa3') {
     const r = await storage.adicionarFragmentoOvo();
+    if (sairRef.current) return;
     setCheckpoint(r);
     avancarPara(proxima);
   }
@@ -151,6 +189,8 @@ export default function SessaoScreen() {
    * rotação — sessão completa de verdade é o que "gasta" o conteúdo do dia.
    */
   async function aoTerminarUltimoBloco() {
+    if (sairRef.current || finalizandoRef.current) return;
+    finalizandoRef.current = true;
     const r = await storage.adicionarFragmentoOvo();
     const sessionNum = await storage.incrementSessionCount();
     setAmigoNascendo(amigoDaSessao(sessionNum));
@@ -202,6 +242,20 @@ export default function SessaoScreen() {
           <View style={styles.heroZone}>
             <MundoPersonagem size={emRecompensa ? 160 : 200} />
           </View>
+        </SafeAreaView>
+      )}
+
+      {fase !== 'fecho' && (
+        <SafeAreaView edges={['top']} style={styles.sairSafe} pointerEvents="box-none">
+          <Pressable
+            onPress={confirmarSair}
+            hitSlop={8}
+            style={({ pressed }) => [styles.sairBtn, pressed && { opacity: 0.6 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Sair da sessão"
+          >
+            <X color={worldBrand.tinta} size={22} strokeWidth={2.6} />
+          </Pressable>
         </SafeAreaView>
       )}
 
@@ -294,6 +348,7 @@ export default function SessaoScreen() {
               fragmentos={checkpoint.fragmentos}
               ovoCompleto={checkpoint.ovoCompleto}
               amigo={amigoNascendo ?? undefined}
+              mundoCompleto={mundoJaCompleto}
               onPoseChange={setPose}
               onCompleta={() => avancarPara('fecho')}
             />
@@ -304,7 +359,7 @@ export default function SessaoScreen() {
               streak={streakFinal}
               totalEstrelas={totalEstrelas}
               onPoseChange={setPose}
-              onFinalizar={() => router.replace('/mapa')}
+              onFinalizar={irParaMapa}
             />
           )}
         </View>
@@ -329,6 +384,17 @@ const styles = StyleSheet.create({
     paddingTop: 2,
   },
   safe: { flex: 1, zIndex: 10 },
+  sairSafe: { position: 'absolute', top: 0, left: 0, zIndex: 30 },
+  sairBtn: {
+    marginLeft: 12,
+    marginTop: 4,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.72)',
+  },
   progress: {
     alignItems: 'center',
     paddingTop: 4,

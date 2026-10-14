@@ -104,7 +104,7 @@ export default function PermissaoScreen() {
           {negado ? (
             <Text style={styles.aviso}>
               Sem o microfone eu não consigo te ouvir.{'\n'}
-              Ative nas configurações do telemóvel e tente de novo.
+              Ative nas configurações do celular e tente de novo.
             </Text>
           ) : null}
         </View>
